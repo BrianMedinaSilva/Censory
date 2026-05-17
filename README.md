@@ -17,8 +17,15 @@ Censory is a turn-based RPG being developed using C++. It follows college studen
 < SEMESTER 1 >
 - Battles: 5/16
 - Cutscenes: 0/16
-Overall: 15.625%
+- Overall: 15.625%
 (subject to change)
+
+# How to Play
+Just do the good old things you'd do to run a normal C++ program. In your terminal:
+
+> g++ censory_v1.cpp -o censory_v1.exe
+
+> ./censory
 
 # Credits
 Programming, gameplay, story, and everything in between: Brian Medina
