@@ -15,8 +15,8 @@ Censory is a turn-based RPG being developed using C++. It follows college studen
 
 # Progress
 < SEMESTER 1 >
-Battles: 5/16
-Cutscenes: 0/16
+- Battles: 5/16
+- Cutscenes: 0/16
 Overall: 15.625%
 (subject to change)
 
