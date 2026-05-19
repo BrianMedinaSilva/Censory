@@ -12,11 +12,10 @@ Just do the good old things you'd do to run a normal C++ program. In your termin
 
 # Features
 - 8 challenging turn-based battles
-- 2 party members
+- 2 party members, each with their own "toggles" that change how skills function
 - 9 skills
-- 1 "toggle", which changes how skills function
-- Enemy targeting AI that prioritizes whoever has the lowest health
-- A dynamic quick time event (QTE) mechanic that allows you to reduce damage taken from enemy attacks
+- Enemy targeting AI that prioritizes targets based on your stats (lowest HP, highest STR, etc.)
+- A dynamic quick time event (QTE) mechanic that allows you to reduce damage and debuffs from enemies
 - Unique damage over time (DoT) mechanics inspired by Calculus and Physics
 - A hub area you can visit between heists (approximately every 4 battles) to reassign stat points and change equipped skills
 
