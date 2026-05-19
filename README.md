@@ -3,10 +3,17 @@ By Brian Medina
 
 Censory is a turn-based RPG being developed using C++. It follows college student Bronson as he seeks to uncover the truth behind the Universal Set, an alternate world that exists within his school. The game will be released in eight Semesters, with each one introducing more complex mechanics and revealing more about its overarching mystery.
 
+# How to Play
+Just do the good old things you'd do to run a normal C++ program. In your terminal:
+
+> g++ censory_v1.cpp -o censory_v1.exe
+
+> ./censory
+
 # Features
-- 5 challenging turn-based battles
+- 8 challenging turn-based battles
 - 2 party members
-- 4 skills
+- 9 skills
 - 1 "toggle", which changes how skills function
 - Enemy targeting AI that prioritizes whoever has the lowest health
 - A dynamic quick time event (QTE) mechanic that allows you to reduce damage taken from enemy attacks
@@ -15,17 +22,10 @@ Censory is a turn-based RPG being developed using C++. It follows college studen
 
 # Progress
 < SEMESTER 1 >
-- Battles: 5/16
-- Cutscenes: 0/16
-- Overall: 15.625%
+- Battles: 8/16
+- Cutscenes: 3/16
+- Overall: 34.375%
 (subject to change)
-
-# How to Play
-Just do the good old things you'd do to run a normal C++ program. In your terminal:
-
-> g++ censory_v1.cpp -o censory_v1.exe
-
-> ./censory
 
 # Credits
 Programming, gameplay, story, and everything in between: Brian Medina
