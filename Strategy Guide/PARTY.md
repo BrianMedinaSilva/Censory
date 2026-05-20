@@ -39,8 +39,8 @@ It should be noted that anyone can use any skill with no exception. Mix and matc
 
 ## 3.1 - SEMESTER 1 SKILLS
 - **Attack**: Deals damage equal to the user's STR.
-- **Migraine**: Lowers the user's HV equal to the user's STR/2.
-- **Accelerant Migraine**: Lowers the user's HA equal to the user's STR/4.
+- **Migraine**: Lowers HV equal to the user's STR/2.
+- **Accelerant Migraine**: Lowers HA equal to the user's STR/4.
 
 - **Stimulate**: Raises STR equal to the user's CHA.
 - **Rizz Up**: Raises CHA equal to the user's CHA.
