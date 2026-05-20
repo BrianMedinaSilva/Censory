@@ -8,14 +8,14 @@ Bronson is a college freshman who discovered the Universal Set one day while goi
 
 As the protagonist, he joins the party immediately and is present in pretty much every single battle.
 
-His Burnout toggle allows him to double the effects of his skills, however they will lower this stat by an amount equal to the stat.
+His Burnout toggle allows him to double the effects of his skills, however they will lower the stat used by the skill by an amount equal to the stat.
 
 ## 1.2 - COLT
 Colt is a hallmate of Bronson.
 
 He joins the party starting in Battle 1-2-1.
 
-His Coin Flip toggle allows him to risk accuracy for results - it has a 50/50 chance of either doubling his skills' effects or causing them to miss entirely.
+His Coin Flip toggle allows him to risk accuracy for results - it has a 50/50 chance of either doubling his skills' effects or causing them to miss entirely. 
 
 # SECTION 2 - STATS
 There's four main stats in *Censory* that players can distribute among their party members however they like:
@@ -38,14 +38,14 @@ Every party member can equip up to 4 skills, each of which have different effect
 It should be noted that anyone can use any skill with no exception. Mix and match them to your heart's content!
 
 ## 3.1 - SEMESTER 1 SKILLS
-**Attack**: Deals damage equal to the user's STR.
-**Migraine**: Lowers the user's HV equal to the user's STR/2.
-**Accelerant Migraine**: Lowers the user's HA equal to the user's STR/4.
+- **Attack**: Deals damage equal to the user's STR.
+- **Migraine**: Lowers the user's HV equal to the user's STR/2.
+- **Accelerant Migraine**: Lowers the user's HA equal to the user's STR/4.
 
-**Stimulate**: Raises STR equal to the user's CHA.
-**Rizz Up**: Raises CHA equal to the user's CHA.
-**Brain Boost**: Raises INT equal to the user's CHA.
+- **Stimulate**: Raises STR equal to the user's CHA.
+- **Rizz Up**: Raises CHA equal to the user's CHA.
+- **Brain Boost**: Raises INT equal to the user's CHA.
 
-**Sedate**: Lowers STR equal to the user's INT.
-**Rizz Down**: Lowers CHA equal to the user's INT.
-**Brain Break**: Lowers INT equal to the user's INT.
+- **Sedate**: Lowers STR equal to the user's INT.
+- **Rizz Down**: Lowers CHA equal to the user's INT.
+- **Brain Break**: Lowers INT equal to the user's INT.
