@@ -6,13 +6,13 @@ Censory is a turn-based RPG being developed using C++. It follows college studen
 ## How to Play
 Just do the good old things you'd do to run a normal C++ program. In your terminal:
 
-> g++ censory_v0.3.cpp -o censory_v0.3.exe
+> g++ censory_v0.4.cpp -o censory_v0.3.exe
 
-> ./censory
+> ./censory_v0.4.exe
 
 ## Features
 - 16 challenging turn-based battles (not counting an optional encounter for the clinically insane)
-- 3 party members, each with their own "toggles" that change how skills function (the third guy's toggle's still a WIP)
+- 3 party members, each with their own "toggles" that change how skills function
 - 9 skills that account for a wide array of different playstyles
 - Enemy targeting AI that prioritizes targets based on your stats (lowest HP, highest STR, etc.)
 - A dynamic quick time event (QTE) mechanic that allows you to reduce damage and debuffs from enemies
