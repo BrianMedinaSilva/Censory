@@ -7,25 +7,25 @@ As you investigate the truth behind the Universal Set, various friends will join
 Each of them has a unique toggle that impacts how most of their skills function. Toggles can be activated or deactivated during the respective party member's turn without consuming their action.
 
 ### 1.1 - BRONSON
-Bronson is a college freshman who discovered the Universal Set one day while going to office hours.
+Bronson is a college student who discovered the Universal Set one day while going to office hours during his first semester.
 
 As the protagonist, he joins the party immediately and is present in pretty much every single battle.
 
 His Burnout toggle allows him to double the effects of his skills, however they will lower the stat used by the skill by an amount equal to the stat.
 
 ### 1.2 - COLT
-Colt is a hallmate of Bronson.
+Colt is a hallmate from Bronson's freshman dorm.
 
 He joins the party starting in Battle 1-2-1.
 
 His Coin Flip toggle allows him to risk accuracy for results - it has a 50/50 chance of either doubling his skills' effects or causing them to miss entirely.
 
 ### 1.3 - PETER
-Peter was in Bronson and Colt's orientation group.
+Peter is a commuter who was in Bronson and Colt's orientation group.
 
 He joins the party starting in Battle 1-3-1.
 
-His Distribute toggle is supposed to equally distribute the effects of skills to all teammates or all enemies, however it is still a work-in-progress.
+His Distribute toggle applies skills to all teammates or all enemies at half of their original effect.
 
 ## SECTION 2 - STATS
 There's four main stats in *Censory* that players can distribute among their party members however they like:
