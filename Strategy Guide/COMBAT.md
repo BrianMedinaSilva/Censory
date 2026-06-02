@@ -10,6 +10,9 @@ You can type a number from 1 to 4 to use one of your currently equipped skills.
 ### 1.2 - TOGGLES
 You can type the number 5 to activate or deactivate the current party's member toggle, which will change how your skills behave. This will not end your turn.
 
+### 1.3 - ANALYZE
+You can type the number 6 to see an teammate or enemy's stats in greater detail. This will not end your turn.
+
 ## SECTION 2 - ENEMY TURN
 The enemy turn is when combat becomes more action-oriented.
 
@@ -40,3 +43,5 @@ After every battle, the party's performance shall be measured with a letter grad
 - Anything worse: F
 
 You will not be penalized for poor grades, however certain rewards, such as new skills, will be locked behind earning a certain amount of As.
+
+##
