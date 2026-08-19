@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 
 public class Combatant {
-    public string name;
+    public string name = "";
     public int VIT;
     public int STR;
     public int CHA;
@@ -20,7 +20,8 @@ public class Combatant {
     public int actions = 1;
     public bool alive = true;
     public bool toggle = false;
-    public List<string> skills = new List<string>();
+    public List <Skill> skills = new List<Skill>();
+    public List <Toggle> toggles = new List<Toggle>();
 };
 
 public class Team {
@@ -32,7 +33,7 @@ public class Team {
 };
 
 public class Inventory {
-    public List<string> skills = new List<string> {"Attack", "Stimulate", "Sedate"};
+    public List<Skill> skills = new List<Skill> {SkillList.Attack, SkillList.Stimulate, SkillList.Sedate};
 };
 
 /*
@@ -53,17 +54,148 @@ struct Skill {
 */
 
 public class Skill {
-    public string name;
-    public string effect;
-    public string stat_used;
-    public string stat_affected;
+    public string name = "";
+    public string target = "";
+    public string effect = "";
+    public string stat_used = "";
+    public string stat_affected = "";
     public double multiplier = 1;
     public bool timing = false;
     public bool aoe = false;
 };
 
+public static class SkillList {
+    public static Skill None = new Skill {
+        name = "N/A"
+    };
+    public static Skill Attack = new Skill {
+        name = "Attack",
+        target = "enemy",
+        effect = "HP damage",
+        stat_used = "STR",
+        multiplier = 1,
+        timing = true,
+        aoe = false
+    };
+    public static Skill Migraine = new Skill {
+        name = "Migraine",
+        target = "enemy",
+        effect = "HV damage",
+        stat_used = "STR",
+        multiplier = 0.5,
+        timing = true,
+        aoe = false
+    };
+    public static Skill ChronicPain = new Skill {
+        name = "Chronic Pain",
+        target = "enemy",
+        effect = "HA damage",
+        stat_used = "STR",
+        multiplier = 0.25,
+        timing = true,
+        aoe = false
+    };
+    public static Skill Stimulate = new Skill {
+        name = "Stimulate",
+        target = "teammate",
+        effect = "buff",
+        stat_used = "CHA",
+        stat_affected = "STR",
+        multiplier = 1,
+        timing = false,
+        aoe = false
+    };
+    public static Skill RizzUp = new Skill {
+        name = "Rizz Up",
+        target = "teammate",
+        effect = "buff",
+        stat_used = "CHA",
+        stat_affected = "CHA",
+        multiplier = 1,
+        timing = false,
+        aoe = false
+    };
+    public static Skill BrainBoost = new Skill {
+        name = "Brain Boost",
+        target = "teammate",
+        effect = "buff",
+        stat_used = "CHA",
+        stat_affected = "INT",
+        multiplier = 1,
+        timing = false,
+        aoe = false
+    };
+    public static Skill Sedate = new Skill {
+        name = "Sedate",
+        target = "enemy",
+        effect = "debuff",
+        stat_used = "INT",
+        stat_affected = "STR",
+        multiplier = 1,
+        timing = true,
+        aoe = false
+    };
+    public static Skill RizzDown = new Skill {
+        name = "Rizz Down",
+        target = "enemy",
+        effect = "debuff",
+        stat_used = "INT",
+        stat_affected = "CHA",
+        multiplier = 1,
+        timing = true,
+        aoe = false
+    };
+    public static Skill BrainBreak = new Skill {
+        name = "Brain Break",
+        target = "enemy",
+        effect = "debuff",
+        stat_used = "INT",
+        stat_affected = "INT",
+        multiplier = 1,
+        timing = true,
+        aoe = false
+    };
+}
+
+public class Toggle {
+    public string name = "";
+};
+
+public static class ToggleList {
+    public static Toggle Burnout = new Toggle {
+        name = "Burnout"
+    };
+    public static Toggle CoinFlip = new Toggle {
+        name = "Coin Flip"
+    };
+    public static Toggle Distribute = new Toggle {
+        name = "Distribute"
+    };
+}
+
+public class TeamSkill : Skill {
+    public int TP_cost = 0;
+};
+
+public static class TeamSkillList {
+    public static TeamSkill None = new TeamSkill {
+        name = "N/A"
+    };
+    public static TeamSkill Stopjitsu = new TeamSkill {
+        name = "Stopjitsu",
+        target = "enemy",
+        effect = "HP damage",
+        stat_used = "STR",
+        multiplier = 1,
+        timing = true,
+        aoe = false,
+        TP_cost = 3
+    };
+}
+
 public class Rules {
     public bool target_downed = false;
+    public bool team_skills = false;
 };
 
 public static class BattleSystem {
@@ -97,17 +229,20 @@ public static class BattleSystem {
             Console.WriteLine("Whose skills will you change? Choose a teammate from 1 to " + team.team.Count + ": ");
         }
 
-        target = int.Parse(Console.ReadLine());
         if (rules.target_downed == true) {
             while (target > team.team.Count || target < 1) {
-                Console.WriteLine("Invalid! Choose from 1 to " + team.team.Count + ": ");
-                target = int.Parse(Console.ReadLine());
+                if (!int.TryParse(Console.ReadLine(), out target)) {
+                    Console.WriteLine("Invalid! Choose from 1 to " + team.team.Count + ": ");
+                    target = 0;
+                }
             }
         }
         else {
             while (target > team.team.Count || target < 1 || team.team[target-1].alive == false) {
-                Console.WriteLine("Invalid! Choose from 1 to " + team.team.Count + ": ");
-                target = int.Parse(Console.ReadLine());
+                if (!int.TryParse(Console.ReadLine(), out target)) {
+                    Console.WriteLine("Invalid! Choose from 1 to " + team.team.Count + ": ");
+                    target = 0;
+                }
             }
         }
         return target - 1;
@@ -134,7 +269,7 @@ public static class BattleSystem {
         return target;
     }
 
-    public static int EnemyTargetingLowestHP(Team player_team) {
+    public static int EnemyTargetingLowestPlayerHP(Team player_team) {
         int optimal = -1;
         int min_hp = int.MaxValue;
         for (int i = 0; i < player_team.team.Count; i++) {
@@ -148,7 +283,7 @@ public static class BattleSystem {
         return optimal;
     }
 
-    public static int EnemyTargetingHighestSTR(Team player_team) {
+    public static int EnemyTargetingHighestPlayerSTR(Team player_team) {
         int optimal = -1;
         int max_str = int.MinValue;
         for (int i = 0; i < player_team.team.Count; i++) {
@@ -156,6 +291,20 @@ public static class BattleSystem {
                 if ((player_team.team[i].STR + player_team.team[i].STR_mod) > max_str) {
                     optimal = i;
                     max_str = player_team.team[i].STR + player_team.team[i].STR_mod;
+                }
+            }
+        }
+        return optimal;
+    }
+
+    public static int EnemyTargetingHighestEnemySTR(Team enemy_team) {
+        int optimal = -1;
+        int max_str = int.MinValue;
+        for (int i = 0; i < enemy_team.team.Count; i++) {
+            if (enemy_team.team[i].alive == true) {
+                if ((enemy_team.team[i].STR + enemy_team.team[i].STR_mod) > max_str) {
+                    optimal = i;
+                    max_str = enemy_team.team[i].STR + enemy_team.team[i].STR_mod;
                 }
             }
         }
@@ -178,13 +327,13 @@ public static class BattleSystem {
     public static double TogglePro(Combatant user) {
         double multiplier = 1;
         if (user.toggle == true) {
-            if (user.name == "Bronson") {
+            if (user.toggles.Contains(ToggleList.Burnout) == true) {
                 multiplier = 2;
             }
-            else if (user.name == "Colt") {
+            else if (user.toggles.Contains(ToggleList.CoinFlip) == true) {
                 multiplier = 2 * Random.Shared.Next(2);
             }
-            else if (user.name == "Peter") {
+            else if (user.toggles.Contains(ToggleList.Distribute) == true) {
                 multiplier = 0.5;
             }
         }
@@ -192,7 +341,7 @@ public static class BattleSystem {
     }
 
     public static void ToggleCon(Combatant user, string stat) {
-        if (user.name == "Bronson") {
+        if (user.toggle == true && user.toggles.Contains(ToggleList.Burnout) == true) {
             if (stat == "VIT") {
                 user.VIT_mod -= user.VIT;
             }
@@ -212,6 +361,10 @@ public static class BattleSystem {
         if (target.HP <= 0 && target.alive == true) {
             target.alive = false;
             living_team -= 1;
+        }
+        else if (target.HP > 0 && target.alive == false) {
+            target.alive = true;
+            living_team += 1;
         }
     }
 
@@ -238,14 +391,12 @@ public static class BattleSystem {
         }
     }
 
-    public static void Skill(Skill skill, Combatant user, Team player_team, Team enemy_team, int target, ref int living_team) {
-        Console.WriteLine(user.name + " uses " + skill.name + "!");
-
+    public static int SkillEffectValue(Combatant user, Skill skill) {
         int effect_value = 0;
-        double toggle_multiplier = TogglePro(user);
-        double t = 1;
-
-        if (skill.stat_used == "STR") {
+        if (skill.stat_used == "VIT") {
+            effect_value = user.VIT + user.VIT_mod;
+        }
+        else if (skill.stat_used == "STR") {
             effect_value = user.STR + user.STR_mod;
         }
         else if (skill.stat_used == "CHA") {
@@ -254,125 +405,47 @@ public static class BattleSystem {
         else if (skill.stat_used == "INT") {
             effect_value = user.INT + user.INT_mod;
         }
+        return effect_value;
+    }
 
-        if (skill.timing == true) {
-            t = Timing();
-        }
+    public static double SkillEffectMultiplier(Combatant user, Skill skill, bool user_is_enemy) {
+        double toggle_multiplier = TogglePro(user);
+        double timing_multiplier = 1;
 
-        if (skill.effect == "HP damage") {
-            if (user.toggle == true && user.name == "Peter") {
-                for (int i = 0; i < enemy_team.team.Count; i++) {
-                    enemy_team.team[i].HP -= (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                    CheckIfDowned(enemy_team.team[i], ref living_team);
-                }
-            }
-            else {
-                enemy_team.team[target].HP -= (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                CheckIfDowned(enemy_team.team[target], ref living_team);
-            }
-            Console.WriteLine(enemy_team.team[target].name + " took " + (int)(effect_value * toggle_multiplier * t * skill.multiplier) + " damage!");
-        }
-        if (skill.effect == "HV damage") {
-            if (user.toggle == true && user.name == "Peter") {
-                for (int i = 0; i < enemy_team.team.Count; i++) {
-                    enemy_team.team[i].HV -= (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-            else {
-                enemy_team.team[target].HV -= (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-            }
-            Console.WriteLine(enemy_team.team[target].name + " will take " + (int)(effect_value * toggle_multiplier * t) + " damage at the end of every turn!");
-        }
-        if (skill.effect == "HA damage") {
-            if (user.toggle == true && user.name == "Peter") {
-                for (int i = 0; i < enemy_team.team.Count; i++) {
-                    enemy_team.team[i].HA -= (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-            else {
-                enemy_team.team[target].HA -= (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-            }
-            Console.WriteLine(enemy_team.team[target].name + " will take an additional " + (int)(effect_value * toggle_multiplier * t * skill.multiplier) + " damage every turn, gradually accumulating by that amount!");
-        }
-        if (skill.effect == "buff") {
-            if (skill.stat_affected == "STR") {
-                if (user.toggle == true && user.name == "Peter") {
-                    for (int i = 0; i < enemy_team.team.Count; i++) {
-                        player_team.team[i].STR_mod += (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                    }
-                }
-                else {
-                    player_team.team[target].STR_mod += (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-            if (skill.stat_affected == "CHA") {
-                if (user.toggle == true && user.name == "Peter") {
-                    for (int i = 0; i < enemy_team.team.Count; i++) {
-                        player_team.team[i].CHA_mod += (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                    }
-                }
-                else {
-                    player_team.team[target].CHA_mod += (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-            if (skill.stat_affected == "INT") {
-                if (user.toggle == true && user.name == "Peter") {
-                    for (int i = 0; i < enemy_team.team.Count; i++) {
-                        player_team.team[i].INT_mod += (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                    }
-                }
-                else {
-                    player_team.team[target].INT_mod += (int)(effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-
-            if (user.toggle == true && user.name == "Peter") {
-                Console.WriteLine("The " + skill.stat_affected + " of all teammates was raised by " + (int)(effect_value * toggle_multiplier * t * skill.multiplier) + "!");
-            }
-            else {
-                Console.WriteLine(player_team.team[target].name + "'s " + skill.stat_affected + " was raised by " + (int)(effect_value * toggle_multiplier * t * skill.multiplier) + "!");
-            }
-        }
-        if (skill.effect == "debuff") {
-            if (skill.stat_affected == "STR") {
-                if (user.toggle == true && user.name == "Peter") {
-                    for (int i = 0; i < enemy_team.team.Count; i++) {
-                        enemy_team.team[i].STR_mod -= (int) (effect_value * toggle_multiplier * t * skill.multiplier);
-                    }
-                }
-                else {
-                    enemy_team.team[target].STR_mod -= (int) (effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-            if (skill.stat_affected == "CHA") {
-                if (user.toggle == true && user.name == "Peter") {
-                    for (int i = 0; i < enemy_team.team.Count; i++) {
-                        enemy_team.team[i].CHA_mod -= (int) (effect_value * toggle_multiplier * t * skill.multiplier);
-                    }
-                }
-                else {
-                    enemy_team.team[target].CHA_mod -= (int) (effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-            if (skill.stat_affected == "INT") {
-                if (user.toggle == true && user.name == "Peter") {
-                    for (int i = 0; i < enemy_team.team.Count; i++) {
-                        enemy_team.team[i].INT_mod -= (int) (effect_value * toggle_multiplier * t * skill.multiplier);
-                    }
-                }
-                else {
-                    enemy_team.team[target].INT_mod -= (int) (effect_value * toggle_multiplier * t * skill.multiplier);
-                }
-            }
-
-            if (user.toggle == true && user.name == "Peter") {
-                Console.WriteLine("The " + skill.stat_affected + " of all teammates was lowered by " + (int)(effect_value * toggle_multiplier * t * skill.multiplier) + "!");
-            }
-            else {
-                Console.WriteLine(enemy_team.team[target].name + "'s " + skill.stat_affected + " was lowered by " + (int)(effect_value * toggle_multiplier * t * skill.multiplier) + "!");
-            }
+        if (skill.timing == true && user_is_enemy == true) {
+            timing_multiplier = Timing();
         }
 
+        double total_multiplier = toggle_multiplier * timing_multiplier * skill.multiplier;
+
+        return total_multiplier;
+    }
+
+    public static bool IsMultiTarget(Combatant user, Skill skill) {
+        if (user.toggle == true && user.toggles.Contains(ToggleList.Distribute) == true) {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public static void DealDamage(Combatant target, int damage, ref int living_team) {
+        target.HP -= damage;
+        CheckIfDowned(target, ref living_team);
+    }
+
+    public static void RestoreHP(Combatant target, int healing, ref int living_team) {
+        target.HP += healing;
+        CheckIfDowned(target, ref living_team);
+    }
+
+    public static void StatModDecay(Combatant user, Skill skill) {
+        if (skill.stat_used == "VIT") {
+            user.VIT_mod /= 2;
+            ToggleCon(user, "VIT");
+        }
         if (skill.stat_used == "STR") {
             user.STR_mod /= 2;
             ToggleCon(user, "STR");
@@ -387,186 +460,188 @@ public static class BattleSystem {
         }
     }
 
-/*
-void attack(Combatant& user, Team& enemy_team, int target) {
-    double toggle_multiplier = TogglePro(user);
-    if (user.toggle == true && user.name == "Peter") {
-        for (int i = 0; i < enemy_team.team.Count; i++) {
-            enemy_team.team[i].HP -= int(Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier));
-        }
-        cout << user.name << " attacks! " << int(Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier)) << " damage to all enemies!\n";
-    }
-    else {
-        enemy_team.team[target].HP -= int(Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier));
-        cout << user.name << " attacks! " << int(Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier)) << " damage!\n";
-    }
-    user.STR_mod /= 2;
-    if (user.toggle == true) {
-        ToggleCon(user, "STR");
-    }
-}
-*/
+    public static void UseSkill(Skill skill, Combatant user, Team player_team, Team enemy_team, int target, ref int living_team, bool user_is_enemy = false) {
+        Console.WriteLine(user.name + " uses " + skill.name + "!");
 
-    public static void Attack(Combatant user, Team enemy_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < enemy_team.team.Count; i++) {
-                enemy_team.team[i].HP -= (int) (Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier));
-            }
-            Console.WriteLine(user.name + " attacks! " + (int) (Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier)) + " damage to all enemies!");
-        }
-        else {
-            enemy_team.team[target].HP -= (int) (Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier));
-            Console.WriteLine(user.name + " attacks! " + (int) (Math.Max(0.0, (user.STR + user.STR_mod) * toggle_multiplier)) + " damage!");
-        }
-        user.STR_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "STR");
-        }
-    }
+        int effect_value = SkillEffectValue(user, skill);
+        double effect_multiplier = SkillEffectMultiplier(user, skill, user_is_enemy);
 
-    public static void Migraine(Combatant user, Team enemy_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < enemy_team.team.Count; i++) {
-                enemy_team.team[i].HV -= (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/2) * toggle_multiplier));
-            }
-            Console.WriteLine(user.name + " uses Migraine! All enemies will take " + (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/2) * toggle_multiplier)) + " extra damage every turn!");
-        }
-        else {
-            enemy_team.team[target].HV -= (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/2) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Migraine! " + enemy_team.team[target].name + " will take " + (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/2) * toggle_multiplier)) + " extra damage every turn!");
-        }
-        user.STR_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "STR");
-        }
-    }
+        double total_effect_value = effect_value * effect_multiplier;
 
-    public static void AccelerantMigraine(Combatant user, Team enemy_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < enemy_team.team.Count; i++) {
-                enemy_team.team[i].HA -= (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/4) * toggle_multiplier));
+        if (skill.effect == "HP damage") {
+            if (IsMultiTarget(user, skill)) {
+                for (int i = 0; i < enemy_team.team.Count; i++) {
+                    DealDamage(enemy_team.team[i], (int)(total_effect_value), ref living_team);
+                }
+                Console.WriteLine("All enemies took " + (int)(total_effect_value) + " damage!");
             }
-            Console.WriteLine(user.name + " uses Accelerant Migraine! All enemies will take " + (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/4) * toggle_multiplier)) + " extra damage every turn, each turn increasing by that amount!");
+            else {
+                DealDamage(enemy_team.team[target], (int)(total_effect_value), ref living_team);
+                Console.WriteLine(enemy_team.team[target].name + " took " + (int)(total_effect_value) + " damage!");
+            }
         }
-        else {
-            enemy_team.team[target].HA -= (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/4) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Accelerant Migraine! " + enemy_team.team[target].name + " will take " + (int) (Math.Max(0.0, ((user.STR + user.STR_mod)/4) * toggle_multiplier)) + " extra damage every turn, each turn increasing by that amount!");
+        if (skill.effect == "HV damage") {
+            if (IsMultiTarget(user, skill)) {
+                for (int i = 0; i < enemy_team.team.Count; i++) {
+                    enemy_team.team[i].HV -= (int)(total_effect_value);
+                }
+                Console.WriteLine("All enemies will take " + (int)(total_effect_value) + " damage at the end of every turn!");
+            }
+            else {
+                enemy_team.team[target].HV -= (int)(total_effect_value);
+                Console.WriteLine(enemy_team.team[target].name + " will take " + (int)(total_effect_value) + " damage at the end of every turn!");
+            }
         }
-        user.STR_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "STR");
+        if (skill.effect == "HA damage") {
+            if (IsMultiTarget(user, skill)) {
+                for (int i = 0; i < enemy_team.team.Count; i++) {
+                    enemy_team.team[i].HA -= (int)(total_effect_value);
+                }
+                Console.WriteLine("All enemies will take an additional " + (int)(total_effect_value) + " damage every turn, gradually accumulating by that amount!");
+            }
+            else {
+                enemy_team.team[target].HA -= (int)(total_effect_value);
+                Console.WriteLine(enemy_team.team[target].name + " will take an additional " + (int)(total_effect_value) + " damage every turn, gradually accumulating by that amount!");
+            }
         }
-    }
+        if (skill.effect == "HP restore") {
+            if (IsMultiTarget(user, skill)) {
+                for (int i = 0; i < enemy_team.team.Count; i++) {
+                    RestoreHP(enemy_team.team[i], (int)(total_effect_value), ref living_team);
+                }
+                Console.WriteLine("All teammates restored " + (int)(total_effect_value) + " HP!");
+            }
+            else {
+                RestoreHP(enemy_team.team[target], (int)(total_effect_value), ref living_team);
+                Console.WriteLine(enemy_team.team[target].name + " restored " + (int)(total_effect_value) + " HP!");
+            }
+        }
+        if (skill.effect == "HV restore") {
+            if (IsMultiTarget(user, skill)) {
+                for (int i = 0; i < enemy_team.team.Count; i++) {
+                    enemy_team.team[i].HV += (int)(total_effect_value);
+                }
+                Console.WriteLine("All teammates will restore " + (int)(total_effect_value) + " HP at the end of every turn!");
+            }
+            else {
+                enemy_team.team[target].HV -= (int)(total_effect_value);
+                Console.WriteLine(enemy_team.team[target].name + " will restore " + (int)(total_effect_value) + " HP at the end of every turn!");
+            }
+        }
+        if (skill.effect == "HA restore") {
+            if (IsMultiTarget(user, skill)) {
+                for (int i = 0; i < enemy_team.team.Count; i++) {
+                    enemy_team.team[i].HA += (int)(total_effect_value);
+                }
+                Console.WriteLine("All teammates will restore an additional " + (int)(total_effect_value) + " HP every turn, gradually accumulating by that amount!");
+            }
+            else {
+                enemy_team.team[target].HA -= (int)(total_effect_value);
+                Console.WriteLine(enemy_team.team[target].name + " will restore an additional " + (int)(total_effect_value) + " HP every turn, gradually accumulating by that amount!");
+            }
+        }
+        if (skill.effect == "buff") {
+            if (skill.stat_affected == "VIT") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < player_team.team.Count; i++) {
+                        player_team.team[i].VIT_mod += (int)(total_effect_value);
+                    }
+                }
+                else {
+                    player_team.team[target].VIT_mod += (int)(total_effect_value);
+                }
+            }
+            if (skill.stat_affected == "STR") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < player_team.team.Count; i++) {
+                        player_team.team[i].STR_mod += (int)(total_effect_value);
+                    }
+                }
+                else {
+                    player_team.team[target].STR_mod += (int)(total_effect_value);
+                }
+            }
+            if (skill.stat_affected == "CHA") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < player_team.team.Count; i++) {
+                        player_team.team[i].CHA_mod += (int)(total_effect_value);
+                    }
+                }
+                else {
+                    player_team.team[target].CHA_mod += (int)(total_effect_value);
+                }
+            }
+            if (skill.stat_affected == "INT") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < player_team.team.Count; i++) {
+                        player_team.team[i].INT_mod += (int)(total_effect_value);
+                    }
+                }
+                else {
+                    player_team.team[target].INT_mod += (int)(total_effect_value);
+                }
+            }
 
-    public static void Stimulate(Combatant user, Team player_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < player_team.team.Count; i++) {
-                player_team.team[i].STR_mod += (int) (Math.Max(0.0, ((user.CHA + user.CHA_mod)/2) * toggle_multiplier));
+            if (IsMultiTarget(user, skill)) {
+                Console.WriteLine("The " + skill.stat_affected + " of all teammates was raised by " + (int)(total_effect_value) + "!");
             }
-            Console.WriteLine(user.name + " uses Stimulate! The STR of all teammates was raised by " + (int) (Math.Max(0.0, ((user.CHA + user.CHA_mod)/2) * toggle_multiplier)) + "!");
+            else {
+                Console.WriteLine(player_team.team[target].name + "'s " + skill.stat_affected + " was raised by " + (int)(total_effect_value) + "!");
+            }
         }
-        else {
-            player_team.team[target].STR_mod += (int) (Math.Max(0.0, (user.CHA + user.CHA_mod) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Stimulate! " + player_team.team[target].name + "'s STR was raised by " + (int) (Math.Max(0.0, (user.CHA + user.CHA_mod) * toggle_multiplier)) + "!");
-        }
-        user.CHA_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "CHA");
-        }
-    }
+        if (skill.effect == "debuff") {
+            if (skill.stat_affected == "VIT") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < enemy_team.team.Count; i++) {
+                        enemy_team.team[i].VIT_mod -= (int) (total_effect_value);
+                    }
+                }
+                else {
+                    enemy_team.team[target].VIT_mod -= (int) (total_effect_value);
+                }
+            }
+            if (skill.stat_affected == "STR") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < enemy_team.team.Count; i++) {
+                        enemy_team.team[i].STR_mod -= (int) (total_effect_value);
+                    }
+                }
+                else {
+                    enemy_team.team[target].STR_mod -= (int) (total_effect_value);
+                }
+            }
+            if (skill.stat_affected == "CHA") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < enemy_team.team.Count; i++) {
+                        enemy_team.team[i].CHA_mod -= (int) (total_effect_value);
+                    }
+                }
+                else {
+                    enemy_team.team[target].CHA_mod -= (int) (total_effect_value);
+                }
+            }
+            if (skill.stat_affected == "INT") {
+                if (IsMultiTarget(user, skill)) {
+                    for (int i = 0; i < enemy_team.team.Count; i++) {
+                        enemy_team.team[i].INT_mod -= (int) (total_effect_value);
+                    }
+                }
+                else {
+                    enemy_team.team[target].INT_mod -= (int) (total_effect_value);
+                }
+            }
 
-    public static void RizzUp(Combatant user, Team player_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < player_team.team.Count; i++) {
-                player_team.team[i].CHA_mod += (int) (Math.Max(0.0, ((user.CHA + user.CHA_mod)/2) * toggle_multiplier));
+            if (IsMultiTarget(user, skill)) {
+                Console.WriteLine("The " + skill.stat_affected + " of all enemies was lowered by " + (int)(total_effect_value) + "!");
             }
-            Console.WriteLine(user.name + " uses Rizz Up! The CHA of all teammates was raised by " + (int) (Math.Max(0.0, ((user.CHA + user.CHA_mod)/2) * toggle_multiplier)) + "!");
+            else {
+                Console.WriteLine(enemy_team.team[target].name + "'s " + skill.stat_affected + " was lowered by " + (int)(total_effect_value) + "!");
+            }
         }
-        else {
-            player_team.team[target].CHA_mod += (int) (Math.Max(0.0, (user.CHA + user.CHA_mod) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Rizz Up! " + player_team.team[target].name + "'s CHA was raised by " + (int) (Math.Max(0.0, (user.CHA + user.CHA_mod) * toggle_multiplier)) + "!");
-        }
-        user.CHA_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "CHA");
-        }
-    }
 
-    public static void BrainBoost(Combatant user, Team player_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < player_team.team.Count; i++) {
-                player_team.team[i].INT_mod += (int) (Math.Max(0.0, ((user.CHA + user.CHA_mod)/2) * toggle_multiplier));
-            }
-            Console.WriteLine(user.name + " uses Brain Boost! The INT of all teammates was raised by " + (int) (Math.Max(0.0, ((user.CHA + user.CHA_mod)/2) * toggle_multiplier)) + "!");
-        }
-        else {
-            player_team.team[target].INT_mod += (int) (Math.Max(0.0, (user.CHA + user.CHA_mod) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Brain Boost! " + player_team.team[target].name + "'s INT was raised by " + (int) (Math.Max(0.0, (user.CHA + user.CHA_mod) * toggle_multiplier)) + "!");
-        }
-        user.CHA_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "CHA");
-        }
-    }
+        StatModDecay(user, skill);
 
-    public static void Sedate(Combatant user, Team enemy_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < enemy_team.team.Count; i++) {
-                enemy_team.team[i].STR_mod -= (int) (Math.Max(0.0, ((user.INT + user.INT_mod)/2) * toggle_multiplier));
-            }
-            Console.WriteLine(user.name + " uses Sedate! The STR of all enemies was lowered by " + (int) (Math.Max(0.0, ((user.INT + user.INT_mod)/2) * toggle_multiplier)) + "!");
-        }
-        else {
-            enemy_team.team[target].STR_mod -= (int) (Math.Max(0.0, (user.INT + user.INT_mod) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Sedate! " + enemy_team.team[target].name + "'s STR was lowered by " + (int) (Math.Max(0.0, (user.INT + user.INT_mod) * toggle_multiplier)) + "!");
-        }
-        user.INT_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "INT");
-        }
-    }
-
-    public static void RizzDown(Combatant user, Team enemy_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < enemy_team.team.Count; i++) {
-                enemy_team.team[i].CHA_mod -= (int) (Math.Max(0.0, ((user.INT + user.INT_mod)/2) * toggle_multiplier));
-            }
-            Console.WriteLine(user.name + " uses Rizz Down! The CHA of all enemies was lowered by " + (int) (Math.Max(0.0, ((user.INT + user.INT_mod)/2) * toggle_multiplier)) + "!");
-        }
-        else {
-            enemy_team.team[target].CHA_mod -= (int) (Math.Max(0.0, (user.INT + user.INT_mod) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Rizz Down! " + enemy_team.team[target].name + "'s CHA was lowered by " + (int) (Math.Max(0.0, (user.INT + user.INT_mod) * toggle_multiplier)) + "!");
-        }
-        user.INT_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "INT");
-        }
-    }
-
-    public static void BrainBreak(Combatant user, Team enemy_team, int target) {
-        double toggle_multiplier = TogglePro(user);
-        if (user.toggle == true && user.name == "Peter") {
-            for (int i = 0; i < enemy_team.team.Count; i++) {
-                enemy_team.team[i].INT_mod -= (int) (Math.Max(0.0, ((user.INT + user.INT_mod)/2) * toggle_multiplier));
-            }
-            Console.WriteLine(user.name + " uses Brain Break! The INT of all enemies was lowered by " + (int) (Math.Max(0.0, ((user.INT + user.INT_mod)/2) * toggle_multiplier)) + "!");
-        }
-        else {
-            enemy_team.team[target].INT_mod -= (int) (Math.Max(0.0, (user.INT + user.INT_mod) * toggle_multiplier));
-            Console.WriteLine(user.name + " uses Brain Break! " + enemy_team.team[target].name + "'s INT was lowered by " + (int) (Math.Max(0.0, (user.INT + user.INT_mod) * toggle_multiplier)) + "!");
-        }
-        user.INT_mod /= 2;
-        if (user.toggle == true) {
-            ToggleCon(user, "INT");
-        }
+        user.actions -= 1;
     }
 
     public static void Analyze(Combatant target) {
@@ -591,12 +666,14 @@ void attack(Combatant& user, Team& enemy_team, int target) {
             player_team.team[i].maxHP = player_team.team[i].VIT * 5;
             player_team.team[i].HV = 0;
             player_team.team[i].HA = 0;
+            player_team.team[i].alive = true;
         }
         for (int i = 0; i < enemy_team.team.Count; i++) {
             enemy_team.team[i].HP = enemy_team.team[i].VIT * 5;
             enemy_team.team[i].maxHP = enemy_team.team[i].VIT * 5;
             enemy_team.team[i].HV = 0;
             enemy_team.team[i].HA = 0;
+            enemy_team.team[i].alive = true;
         }
 
         int living_player_team = player_team.team.Count;
@@ -615,178 +692,131 @@ void attack(Combatant& user, Team& enemy_team, int target) {
                 enemy_team.team[i].actions = 1;
             }
 
+            int target = -1;
+
             for (int i = 0; i < player_team.team.Count; i++) {
                 if (player_team.team[i].alive == true) {
                     while (player_team.team[i].actions > 0) {
-                        int command = 0;
-                        Console.WriteLine("1. " + player_team.team[i].skills[0] + " \n");
-                        Console.WriteLine("2. " + player_team.team[i].skills[1] + " \n");
-                        Console.WriteLine("3. " + player_team.team[i].skills[2] + " \n");
-                        Console.WriteLine("4. " + player_team.team[i].skills[3] + " \n");
-                        Console.WriteLine("ABILITY: " + player_team.team[i].skills[4] + " \n");
-
-                        /*
-                        Console.WriteLine("Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle ability, 6 to Analyze: ");
-                        command = int.Parse(Console.ReadLine());
-                        while (command != 1 && command != 2 && command != 3 && command != 4 && command != 5 && command != 6) {
-                            Console.WriteLine("Invalid! Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle Burnout, 6 to Analyze: ");
-                            command = int.Parse(Console.ReadLine());
+                        if (living_player_team <= 0 || living_enemy_team <= 0) {
+                            break;
                         }
-                        */
+                        int command = 0;
+                        Console.WriteLine("1. " + player_team.team[i].skills[0].name + " \n");
+                        Console.WriteLine("2. " + player_team.team[i].skills[1].name + " \n");
+                        Console.WriteLine("3. " + player_team.team[i].skills[2].name + " \n");
+                        Console.WriteLine("4. " + player_team.team[i].skills[3].name + " \n");
+                        Console.WriteLine("ABILITY: " + player_team.team[i].toggles[0].name + " \n");
 
                         Console.WriteLine("Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle ability, 6 to Analyze: ");
                         while (command != 1 && command != 2 && command != 3 && command != 4 && command != 5 && command != 6) {
                             if (!int.TryParse(Console.ReadLine(), out command)) {
-                                Console.WriteLine("Invalid! Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle Burnout, 6 to Analyze: ");
+                                Console.WriteLine("Invalid! Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle ability, 6 to Analyze: ");
                                 command = 0;
                             }
                         }
-
                         if (command == 6) {
-                            int side;
+                            int side = 0;
                             Console.WriteLine("Who will you Analyze? 1 for teammates, 2 for enemies: ");
-                            side = int.Parse(Console.ReadLine());
                             while (side != 1 && side != 2) {
-                                Console.WriteLine("Who will you Analyze? 1 for teammates, 2 for enemies: ");
-                                side = int.Parse(Console.ReadLine());
+                                if (!int.TryParse(Console.ReadLine(), out side)) {
+                                    Console.WriteLine("Invalid! Who will you Analyze? 1 for teammates, 2 for enemies: ");
+                                    side = 0;
+                                }
                             }
                             if (side == 1) {
-                                int target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
+                                target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
                                 Analyze(player_team.team[target]);
                             }
                             else if (side == 2) {
-                                int target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
+                                target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
                                 Analyze(enemy_team.team[target]);
                             }
                             continue;
                         }
-                        else if (player_team.team[i].skills[command-1] == "Attack") {
-                            int target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
-                            Attack(player_team.team[i], enemy_team, target);
-                            if (player_team.team[i].toggle == true && player_team.team[i].name == "Peter") {
-                                for (int j = 0; j < enemy_team.team.Count; j++) {
-                                    CheckIfDowned(enemy_team.team[j], ref living_enemy_team);
-                                }
-                            }
-                            else {
-                                CheckIfDowned(enemy_team.team[target], ref living_enemy_team);
-                            }
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Migraine") {
-                            int target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
-                            Migraine(player_team.team[i], enemy_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Accelerant Migraine") {
-                            int target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
-                            AccelerantMigraine(player_team.team[i], enemy_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Stimulate") {
-                            int target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
-                            Stimulate(player_team.team[i], player_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Rizz Up") {
-                            int target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
-                            RizzUp(player_team.team[i], player_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Brain Boost") {
-                            int target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
-                            BrainBoost(player_team.team[i], player_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Sedate") {
-                            int target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
-                            Sedate(player_team.team[i], enemy_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Rizz Down") {
-                            int target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
-                            RizzDown(player_team.team[i], enemy_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Brain Break") {
-                            int target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
-                            BrainBreak(player_team.team[i], enemy_team, target);
-                            player_team.team[i].actions -= 1;
-                        }
-                        else if (player_team.team[i].skills[command-1] == "Burnout") {
+                        else if (command == 5) {
                             if (player_team.team[i].toggle == false) {
                                 player_team.team[i].toggle = true;
-                                Console.WriteLine(player_team.team[i].name + " activates Burnout.");
+                                Console.WriteLine(player_team.team[i].name + " activates " + player_team.team[i].toggles[0].name + ".");
                             }
                             else {
                                 player_team.team[i].toggle = false;
-                                Console.WriteLine(player_team.team[i].name + " deactivates Burnout.");
+                                Console.WriteLine(player_team.team[i].name + " deactivates " + player_team.team[i].toggles[0].name + ".");
                             }
-                            continue;
                         }
-                        else if (player_team.team[i].skills[command-1] == "Coin Flip") {
-                            if (player_team.team[i].toggle == false) {
-                                player_team.team[i].toggle = true;
-                                Console.WriteLine(player_team.team[i].name + " activates Coin Flip.");
-                            }
-                            else {
-                                player_team.team[i].toggle = false;
-                                Console.WriteLine(player_team.team[i].name + " deactivates Coin Flip.");
-                            }
-                            continue;
+                        else if (player_team.team[i].skills[command-1] == SkillList.Attack) {
+                            target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
+                            UseSkill(SkillList.Attack, player_team.team[i], player_team, enemy_team, target, ref living_enemy_team);
                         }
-                        else if (player_team.team[i].skills[command-1] == "Distribute") {
-                            if (player_team.team[i].toggle == false) {
-                                player_team.team[i].toggle = true;
-                                Console.WriteLine(player_team.team[i].name + " activates Distribute.");
-                            }
-                            else {
-                                player_team.team[i].toggle = false;
-                                Console.WriteLine(player_team.team[i].name + " deactivates Distribute.");
-                            }
-                            continue;
+                        else if (player_team.team[i].skills[command-1] == SkillList.Migraine) {
+                            target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
+                            UseSkill(SkillList.Migraine, player_team.team[i], player_team, enemy_team, target, ref living_enemy_team);
+                        }
+                        else if (player_team.team[i].skills[command-1] == SkillList.ChronicPain) {
+                            target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
+                            UseSkill(SkillList.ChronicPain, player_team.team[i], player_team, enemy_team, target, ref living_enemy_team);
+                        }
+                        else if (player_team.team[i].skills[command-1] == SkillList.Stimulate) {
+                            target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
+                            UseSkill(SkillList.Stimulate, player_team.team[i], player_team, enemy_team, target, ref living_player_team);
+                        }
+                        else if (player_team.team[i].skills[command-1] == SkillList.RizzUp) {
+                            target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
+                            UseSkill(SkillList.RizzUp, player_team.team[i], player_team, enemy_team, target, ref living_player_team);
+                        }
+                        else if (player_team.team[i].skills[command-1] == SkillList.BrainBoost) {
+                            target = PlayerTargeting(player_team, "teammate", ref living_player_team, rules);
+                            UseSkill(SkillList.BrainBoost, player_team.team[i], player_team, enemy_team, target, ref living_player_team);
+                        }
+                        else if (player_team.team[i].skills[command-1] == SkillList.Sedate) {
+                            target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
+                            UseSkill(SkillList.Sedate, player_team.team[i], player_team, enemy_team, target, ref living_enemy_team);
+                        }
+                        else if (player_team.team[i].skills[command-1] == SkillList.RizzDown) {
+                            target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
+                            UseSkill(SkillList.RizzDown, player_team.team[i], player_team, enemy_team, target, ref living_enemy_team);
+                        }
+                        else if (player_team.team[i].skills[command-1] == SkillList.BrainBreak) {
+                            target = PlayerTargeting(enemy_team, "enemy", ref living_enemy_team, rules);
+                            UseSkill(SkillList.BrainBreak, player_team.team[i], player_team, enemy_team, target, ref living_enemy_team);
                         }
                     }
                 }
             }
 
+            target = -1;
             for (int i = 0; i < enemy_team.team.Count; i++) {
                 if (enemy_team.team[i].HP > 0) {
-                    if ((enemy_team.team[i].name == "Charisma Cannon" || enemy_team.team[i].name == "Stella" || enemy_team.team[i].name == "Lovebird" || enemy_team.team[i].name == "Glad Doctor" || enemy_team.team[i].name == "CARRIE" || enemy_team.team[i].name == "Louie") && enemy_team.team[i].STR_mod <= 0) {
-                        enemy_team.team[i].STR_mod += Math.Max(0, (int)((enemy_team.team[i].CHA + enemy_team.team[i].CHA_mod)));
-                        Console.WriteLine(enemy_team.team[i].name + " uses Stimulate! " + enemy_team.team[i].name + "'s STR was raised by " + (int)Math.Max(0, (int)((enemy_team.team[i].CHA + enemy_team.team[i].CHA_mod))) + "!");
-                        enemy_team.team[i].CHA_mod /= 2;
+                    if (living_player_team <= 0 || living_enemy_team <= 0) {
+                        break;
                     }
-                    else if (enemy_team.team[i].name == "Brainy Broom" || enemy_team.team[i].name == "Ambivalant" || enemy_team.team[i].name == "Sad Doctor" || enemy_team.team[i].name == "Nellie") {
-                        int optimal = EnemyTargetingHighestSTR(player_team);
-                        double t = Timing();
-                        if (player_team.team[optimal].STR_mod >= 0) {
-                            player_team.team[optimal].STR_mod -= Math.Max(0, (int) ((enemy_team.team[i].INT + enemy_team.team[i].INT_mod) * t));
-                            Console.WriteLine(enemy_team.team[i].name + " uses Sedate! " + player_team.team[optimal].name + "'s STR was lowered by " + (int) (Math.Max(0, (int)((enemy_team.team[i].INT + enemy_team.team[i].INT_mod) * t))) + "!");
-                            enemy_team.team[i].INT_mod /= 2;
+
+                    if (enemy_team.team[i].name == "Dainty Detergent" || enemy_team.team[i].name == "Stella" || enemy_team.team[i].name == "Lovebird" || enemy_team.team[i].name == "Glad Doctor" || enemy_team.team[i].name == "CARRIE" || enemy_team.team[i].name == "Louie") {
+                        target = EnemyTargetingHighestEnemySTR(player_team);
+                        if (enemy_team.team[target].STR_mod <= 0) {
+                            UseSkill(SkillList.Stimulate, enemy_team.team[i], enemy_team, player_team, target, ref living_enemy_team, true);
                         }
                         else {
-                            optimal = EnemyTargetingLowestHP(player_team);
-                            t = Timing();
-                            player_team.team[optimal].HP -= Math.Max(0, (int) ((enemy_team.team[i].STR + enemy_team.team[i].STR_mod) * t));
-                            Console.WriteLine(enemy_team.team[i].name + " attacks! " + (int) (Math.Max(0, (int)((enemy_team.team[i].STR + enemy_team.team[i].STR_mod) * t))) + " damage!");
-                            if (player_team.team[optimal].HP <= 0 && player_team.team[optimal].alive == true) {
-                                player_team.team[optimal].alive = false;
-                                living_player_team -= 1;
-                            }
-                            enemy_team.team[i].STR_mod /= 2;
+                            target = EnemyTargetingLowestPlayerHP(player_team);
+                            UseSkill(SkillList.Attack, enemy_team.team[i], enemy_team, player_team, target, ref living_player_team, true);
                         }
                     }
-                    else {
-                        int optimal = EnemyTargetingLowestHP(player_team);
-                        double t = Timing();
-                        player_team.team[optimal].HP -= Math.Max(0, (int) ((enemy_team.team[i].STR + enemy_team.team[i].STR_mod) * t));
-                        Console.WriteLine(enemy_team.team[i].name + " attacks! " + (int) (Math.Max(0, (int)((enemy_team.team[i].STR + enemy_team.team[i].STR_mod) * t))) + " damage!");
-                        if (player_team.team[optimal].HP <= 0 && player_team.team[optimal].alive == true) {
-                            player_team.team[optimal].alive = false;
-                            living_player_team -= 1;
+                    else if (enemy_team.team[i].name == "Brainy Broom" || enemy_team.team[i].name == "Ambivalant" || enemy_team.team[i].name == "Sad Doctor" || enemy_team.team[i].name == "Nellie") {
+                        target = EnemyTargetingHighestPlayerSTR(player_team);
+                        if (player_team.team[target].STR_mod >= 0) {
+                            UseSkill(SkillList.Sedate, enemy_team.team[i], enemy_team, player_team, target, ref living_player_team, true);
                         }
-                        enemy_team.team[i].STR_mod /= 2;
+                        else {
+                            target = EnemyTargetingLowestPlayerHP(player_team);
+                            UseSkill(SkillList.Attack, enemy_team.team[i], enemy_team, player_team, target, ref living_player_team, true);
+                        }
+                    }
+                    else if (enemy_team.team[i].name == "Postsynaptic Police") {
+                        target = EnemyTargetingLowestPlayerHP(player_team);
+                        UseSkill(SkillList.Migraine, enemy_team.team[i], enemy_team, player_team, target, ref living_player_team, true);
+                    }
+                    else {
+                        target = EnemyTargetingLowestPlayerHP(player_team);
+                        UseSkill(SkillList.Attack, enemy_team.team[i], enemy_team, player_team, target, ref living_player_team, true);
                     }
                 }
             }
@@ -875,10 +905,15 @@ void attack(Combatant& user, Team& enemy_team, int target) {
         while (in_tazewell == true) {
             int command = 0;
             Console.WriteLine("What would you like to do? 1 to reassign stats, 2 to equip skills, 3 to check gradebook, 4 to save your game, 5 to leave Tazewell: ");
-            command = int.Parse(Console.ReadLine());
-            while (command != 1 && command != 2 && command != 3 && command != 4 && command != 5) {
+            if (!int.TryParse(Console.ReadLine(), out command)) {
                 Console.WriteLine("Invalid! What would you like to do? 1 to reassign stats, 2 to equip skills, 3 to check gradebook, 4 to save your game, 5 to leave Tazewell: ");
-                command = int.Parse(Console.ReadLine());
+                command = 0;
+            }
+            while (command != 1 && command != 2 && command != 3 && command != 4 && command != 5) {
+                if (!int.TryParse(Console.ReadLine(), out command)) {
+                    Console.WriteLine("Invalid! What would you like to do? 1 to reassign stats, 2 to equip skills, 3 to check gradebook, 4 to save your game, 5 to leave Tazewell: ");
+                    command = 0;
+                }
             }
             if (command == 1) {
                 int target = 0;
@@ -889,37 +924,36 @@ void attack(Combatant& user, Team& enemy_team, int target) {
 
                 int invest = 0;
                 Console.WriteLine("How many points would you like to invest into Vitality? You have " + total + " stat point(s) left.");
-                invest = int.Parse(Console.ReadLine());
-                while (1 > invest || invest > (total - 3)) {
+                while (!int.TryParse(Console.ReadLine(), out invest) || 1 > invest || invest > (total - 3)) {
                     Console.WriteLine("Invalid! How many points would you like to invest into Vitality?");
-                    invest = int.Parse(Console.ReadLine());
+                    invest = 0;
                 }
                 player_team.team[target].VIT = invest;
                 total -= invest;
 
+                invest = 0;
                 Console.WriteLine("How many points would you like to invest into Strength? You have " + total + " stat point(s) left.");
-                invest = int.Parse(Console.ReadLine());
-                while (1 > invest || invest > (total - 2)) {
+                while (!int.TryParse(Console.ReadLine(), out invest) || invest < 1 || invest > (total - 2)) {
                     Console.WriteLine("Invalid! How many points would you like to invest into Strength?");
-                    invest = int.Parse(Console.ReadLine());
+                    invest = 0;
                 }
                 player_team.team[target].STR = invest;
                 total -= invest;
 
+                invest = 0;
                 Console.WriteLine("How many points would you like to invest into Charisma? You have " + total + " stat point(s) left.");
-                invest = int.Parse(Console.ReadLine());
-                while (1 > invest || invest > (total - 1)) {
+                while (!int.TryParse(Console.ReadLine(), out invest) || invest < 1 || invest > (total - 1)) {
                     Console.WriteLine("Invalid! How many points would you like to invest into Charisma?");
-                    invest = int.Parse(Console.ReadLine());
+                    invest = 0;
                 }
                 player_team.team[target].CHA = invest;
                 total -= invest;
 
+                invest = 0;
                 Console.WriteLine("How many points would you like to invest into Intellect? You have " + total + " stat point(s) left.");
-                invest = int.Parse(Console.ReadLine());
-                while (1 > invest || invest > total) {
+                while (!int.TryParse(Console.ReadLine(), out invest) || invest < 1 || invest > total) {
                     Console.WriteLine("Invalid! How many points would you like to invest into Intellect?");
-                    invest = int.Parse(Console.ReadLine());
+                    invest = 0;
                 }
                 player_team.team[target].INT = invest;
                 total -= invest;
@@ -937,34 +971,32 @@ void attack(Combatant& user, Team& enemy_team, int target) {
                     target = SelectTarget(player_team, "tazewell_2", rules);
                 }
 
-                Console.WriteLine("1. " + player_team.team[target].skills[0]);
-                Console.WriteLine("2. " + player_team.team[target].skills[1]);
-                Console.WriteLine("3. " + player_team.team[target].skills[2]);
-                Console.WriteLine("4. " + player_team.team[target].skills[3]);
+                Console.WriteLine("1. " + player_team.team[target].skills[0].name);
+                Console.WriteLine("2. " + player_team.team[target].skills[1].name);
+                Console.WriteLine("3. " + player_team.team[target].skills[2].name);
+                Console.WriteLine("4. " + player_team.team[target].skills[3].name);
                 Console.WriteLine("Which slot would you like to change? Choose a slot from 1 to 4: ");
-                slot = int.Parse(Console.ReadLine());
-                while (slot > 4 || slot < 1) {
+                while (!int.TryParse(Console.ReadLine(), out slot) || slot > 4 || slot < 1) {
                     Console.WriteLine("Invalid! Which slot would you like to change?");
-                    slot = int.Parse(Console.ReadLine());
+                    slot = 0;
                 }
 
                 int replacement = 0;
                 for (int i = 0; i < inventory.skills.Count; i++) {
-                    Console.WriteLine(inventory.skills[i]);
+                    Console.WriteLine((i + 1) + ". " + inventory.skills[i].name);
                 }
                 Console.WriteLine("Which skill will you put in its place? 1 for the first slot, 2 for the second slot, etc: ");
-                replacement = int.Parse(Console.ReadLine());
-                while (replacement > inventory.skills.Count || replacement < 1) {
+                while (!int.TryParse(Console.ReadLine(), out replacement) || replacement > inventory.skills.Count || replacement < 1) {
                     Console.WriteLine("Invalid! Which skill will you put in its place? 1 for the first slot, 2 for the second slot, etc: ");
-                    replacement = int.Parse(Console.ReadLine());
+                    replacement = 0;
                 }
 
                 player_team.team[target].skills[slot-1] = inventory.skills[replacement-1];
 
-                Console.WriteLine("1. " + player_team.team[target].skills[0]);
-                Console.WriteLine("2. " + player_team.team[target].skills[1]);
-                Console.WriteLine("3. " + player_team.team[target].skills[2]);
-                Console.WriteLine("4. " + player_team.team[target].skills[3]);
+                Console.WriteLine("1. " + player_team.team[target].skills[0].name);
+                Console.WriteLine("2. " + player_team.team[target].skills[1].name);
+                Console.WriteLine("3. " + player_team.team[target].skills[2].name);
+                Console.WriteLine("4. " + player_team.team[target].skills[3].name);
                 continue;
             }
             else if (command == 3) {
@@ -980,25 +1012,25 @@ void attack(Combatant& user, Team& enemy_team, int target) {
                 if (grade_a >= 4) {
                     has_reward = false;
                     for (int j = 0; j < inventory.skills.Count; j++) {
-                        if (inventory.skills[j] == "Migraine") {
+                        if (inventory.skills[j] == SkillList.Migraine) {
                             has_reward = true;
                         }
                     }
                     if (has_reward == false) {
-                        inventory.skills.Add("Migraine");
+                        inventory.skills.Add(SkillList.Migraine);
                         Console.WriteLine("For getting 4 As, you can now equip the skill Migraine.\n");
                     }
                 }
                 if (grade_a >= 8) {
                     has_reward = false;
                     for (int j = 0; j < inventory.skills.Count; j++) {
-                        if (inventory.skills[j] == "Accelerant Migraine") {
+                        if (inventory.skills[j] == SkillList.ChronicPain) {
                             has_reward = true;
                         }
                     }
                     if (has_reward == false) {
-                        inventory.skills.Add("Accelerant Migraine");
-                        Console.WriteLine("For getting 8 As, you can now equip the skill Accelerant Migraine.\n");
+                        inventory.skills.Add(SkillList.ChronicPain);
+                        Console.WriteLine("For getting 8 As, you can now equip the skill Chronic Pain.\n");
                     }
                 }
                 continue;
@@ -1017,10 +1049,10 @@ void attack(Combatant& user, Team& enemy_team, int target) {
                     file.WriteLine(player_team.team[i].STR);
                     file.WriteLine(player_team.team[i].CHA);
                     file.WriteLine(player_team.team[i].INT);
-                    file.WriteLine(player_team.team[i].skills[0]);
-                    file.WriteLine(player_team.team[i].skills[1]);
-                    file.WriteLine(player_team.team[i].skills[2]);
-                    file.WriteLine(player_team.team[i].skills[3]);
+                    file.WriteLine(player_team.team[i].skills[0].name);
+                    file.WriteLine(player_team.team[i].skills[1].name);
+                    file.WriteLine(player_team.team[i].skills[2].name);
+                    file.WriteLine(player_team.team[i].skills[3].name);
                 }
                 file.Close();
                 Console.WriteLine("The save system is currently a work-in-progress. ");
@@ -1033,10 +1065,10 @@ void attack(Combatant& user, Team& enemy_team, int target) {
         }
     }
 
-
     public static void RunGame() {
         Combatant bronson = new Combatant {name = "Bronson", VIT = 5, STR = 5, CHA = 5, INT = 5};
-        bronson.skills = new List<string> { "Attack", "Stimulate", "Sedate", "N/A", "Burnout" };
+        bronson.skills = new List<Skill> { SkillList.Attack, SkillList.Stimulate, SkillList.Sedate, SkillList.None };
+        bronson.toggles = new List<Toggle> { ToggleList.Burnout };
         Team player_team = new Team { team = new List<Combatant> { bronson } };
         Inventory inventory = new Inventory();
         Rules rules = new Rules();
@@ -1104,10 +1136,11 @@ void attack(Combatant& user, Team& enemy_team, int target) {
 
         // insert pre-mission cutscene here
         Combatant colt = new Combatant {name = "Colt", VIT = 6, STR = 6, CHA = 6, INT = 6};
-        colt.skills = new List<string> { "Attack", "Rizz Up", "Rizz Down", "N/A", "Coin Flip" };
+        colt.skills = new List<Skill> { SkillList.Attack, SkillList.RizzUp, SkillList.RizzDown, SkillList.None };
+        colt.toggles = new List<Toggle> { ToggleList.CoinFlip };
         player_team.team.Add(colt);
-        inventory.skills.Add("Rizz Up");
-        inventory.skills.Add("Rizz Down");
+        inventory.skills.Add(SkillList.RizzUp);
+        inventory.skills.Add(SkillList.RizzDown);
 
         Console.WriteLine("BATTLE 1-2-1: AVERAGE JOE DUO \n");
         Combatant average_joe_2 = new Combatant {name = "Average Joe", VIT = 8, STR = 8, CHA = 8, INT = 8};
@@ -1115,10 +1148,10 @@ void attack(Combatant& user, Team& enemy_team, int target) {
         enemy_team = new Team { team = new List<Combatant> { average_joe_2, average_joe_3 } };
         Battle(player_team, enemy_team, rules);
 
-        Console.WriteLine("BATTLE 1-2-2: CHARISMA CANNON DUO \n");
-        Combatant charisma_cannon_1 = new Combatant {name = "Charisma Cannon", VIT = 12, STR = 4, CHA = 16, INT = 4};
-        Combatant charisma_cannon_2 = new Combatant {name = "Charisma Cannon", VIT = 12, STR = 4, CHA = 16, INT = 4};
-        enemy_team = new Team { team = new List<Combatant> { charisma_cannon_1, charisma_cannon_2 } };
+        Console.WriteLine("BATTLE 1-2-2: DAINTY DETERGENT DUO \n");
+        Combatant dainty_detergent_1 = new Combatant {name = "Dainty Detergent", VIT = 12, STR = 4, CHA = 16, INT = 4};
+        Combatant dainty_detergent_2 = new Combatant {name = "Dainty Detergent", VIT = 12, STR = 4, CHA = 16, INT = 4};
+        enemy_team = new Team { team = new List<Combatant> { dainty_detergent_1, dainty_detergent_2 } };
         Battle(player_team, enemy_team, rules);
 
         Console.WriteLine("BATTLE 1-2-3: BRAINY BROOM DUO \n");
@@ -1139,10 +1172,11 @@ void attack(Combatant& user, Team& enemy_team, int target) {
 
         // insert pre-mission cutscene here
         Combatant peter = new Combatant {name = "Peter", VIT = 7, STR = 7, CHA = 7, INT = 7};
-        peter.skills = new List<string> { "Attack", "Brain Boost", "Brain Break", "N/A", "Distribute" };
+        peter.skills = new List<Skill> { SkillList.Attack, SkillList.BrainBoost, SkillList.BrainBreak, SkillList.None };
+        peter.toggles = new List<Toggle> { ToggleList.Distribute };
         player_team.team.Add(peter);
-        inventory.skills.Add("Brain Boost");
-        inventory.skills.Add("Brain Break");
+        inventory.skills.Add(SkillList.BrainBoost);
+        inventory.skills.Add(SkillList.BrainBreak);
 
         Console.WriteLine("BATTLE 1-3-1: AVERAGE JOE THREESOME \n");
         Combatant average_joe_4 = new Combatant {name = "Average Joe", VIT = 10, STR = 10, CHA = 10, INT = 10};
@@ -1154,8 +1188,8 @@ void attack(Combatant& user, Team& enemy_team, int target) {
         Console.WriteLine("BATTLE 1-3-2: HEARTSTEALERS \n");
         Combatant lovebird_1 = new Combatant {name = "Lovebird", VIT = 12, STR = 4, CHA = 20, INT = 4};
         Combatant bumbling_burglar_2 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 24, CHA = 4, INT = 4};
-        Combatant charisma_cannon_3 = new Combatant {name = "Charisma Cannon", VIT = 16, STR = 4, CHA = 16, INT = 4};
-        enemy_team = new Team { team = new List<Combatant> { lovebird_1, bumbling_burglar_2, charisma_cannon_3 } };
+        Combatant dainty_detergent_3 = new Combatant {name = "Dainty Detergent", VIT = 16, STR = 4, CHA = 16, INT = 4};
+        enemy_team = new Team { team = new List<Combatant> { lovebird_1, bumbling_burglar_2, dainty_detergent_3 } };
         Battle(player_team, enemy_team, rules);
 
         Console.WriteLine("BATTLE 1-3-3: LOVE TRIANGLE \n");
@@ -1178,7 +1212,11 @@ void attack(Combatant& user, Team& enemy_team, int target) {
         int choice = 0;
         Console.WriteLine("You hear howling near Swem Library... will you investigate? Type 1 if yes, 0 if no.\n");
         Console.WriteLine("NOTE: This is an optional challenge, and it will be your hardest one yet. Please think twice before proceeding.");
-        choice = int.Parse(Console.ReadLine());
+        while (!int.TryParse(Console.ReadLine(), out choice) || (choice != 1 && choice != 0)) {
+            Console.WriteLine("Invalid! Which skill will you put in its place? 1 for the first slot, 2 for the second slot, etc: ");
+            choice = 0;
+        }
+
         // insert pre-boss cutscene here
         if (choice == 1) {
             // insert pre-boss cutscene here
@@ -1221,5 +1259,6 @@ void attack(Combatant& user, Team& enemy_team, int target) {
 
         player_team.semester += 1;
         rules.target_downed = true;
+        rules.team_skills = true;
     }
 }
