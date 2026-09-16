@@ -9,9 +9,9 @@ For the time being, Censory is a console-based C# program. To run it, make sure 
 > dotnet run
 
 ## Features
-- 16 challenging turn-based battles (not counting an optional encounter for the clinically insane)
+- 20 challenging turn-based battles (not counting an optional encounter for the clinically insane)
 - 3 party members, each with their own "toggles" that change how skills function
-- 9 skills that account for a wide array of different playstyles
+- Several skills that account for a wide array of different playstyles
 - Enemy targeting AI that prioritizes targets based on your stats (lowest HP, highest STR, etc.)
 - A dynamic quick time event (QTE) mechanic that allows you to reduce damage and debuffs from enemies
 - Unique damage over time (DoT) mechanics inspired by Calculus and Physics
@@ -23,6 +23,12 @@ For the time being, Censory is a console-based C# program. To run it, make sure 
 - Battles: 16/16
 - Cutscenes: 3/16
 - Overall: 59.375%
+
+< SEMESTER 2 >
+- Battles: 4/12
+- Cutscenes: 0/12
+- Overall: 16.67%
+
 (subject to change)
 
 ## Credits
