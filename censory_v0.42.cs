@@ -4,6 +4,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Reflection;
+using System.Net.NetworkInformation;
+using System.Security.Cryptography.X509Certificates;
+using System.ComponentModel.DataAnnotations;
+using System.Net;
 
 public class Combatant {
     public string name = "";
@@ -22,6 +26,7 @@ public class Combatant {
     public int actions = 1;
     public bool alive = true;
     public bool toggle = false;
+    public List <string> status = new List<string>();
     public List <Skill> skills = new List<Skill>();
     public List <Toggle> toggles = new List<Toggle>();
     public List <TeamSkill> team_skills = new List<TeamSkill>();
@@ -41,8 +46,10 @@ public class Inventory {
 
 public class Skill {
     public string name = "";
+    public string description = "";
     public string target = "";
     public string effect = "";
+    public List<string> status = [];
     public string stat_used = "";
     public string stat_affected = "";
     public double multiplier = 1;
@@ -57,6 +64,7 @@ public static class SkillList {
     };
     public static Skill Attack = new Skill {
         name = "Attack",
+        description = "Deals damage equal to STR.",
         target = "enemy",
         effect = "HP damage",
         stat_used = "STR",
@@ -66,6 +74,7 @@ public static class SkillList {
     };
     public static Skill Migraine = new Skill {
         name = "Migraine",
+        description = "Deals damage equal to STR/2 at the end of every turn.",
         target = "enemy",
         effect = "HV damage",
         stat_used = "STR",
@@ -75,6 +84,7 @@ public static class SkillList {
     };
     public static Skill ChronicPain = new Skill {
         name = "Chronic Pain",
+        description = "Subtracts STR/4 from the target's HV at the end of every turn.",
         target = "enemy",
         effect = "HA damage",
         stat_used = "STR",
@@ -84,6 +94,7 @@ public static class SkillList {
     };
     public static Skill Stimulate = new Skill {
         name = "Stimulate",
+        description = "Raises STR equal to CHA.",
         target = "teammate",
         effect = "buff",
         stat_used = "CHA",
@@ -92,8 +103,21 @@ public static class SkillList {
         timing = false,
         aoe = false
     };
+    public static Skill Overstimulate = new Skill {
+        name = "Overstimulate",
+        description = "Raises STR equal to CHA*2, however the target's STR_mod will drop to 0 after STR is used once.",
+        target = "teammate",
+        effect = "buff",
+        status = ["Overstimulate"],
+        stat_used = "CHA",
+        stat_affected = "STR",
+        multiplier = 2,
+        timing = false,
+        aoe = false
+    };
     public static Skill RizzUp = new Skill {
         name = "Rizz Up",
+        description = "Raises CHA equal to CHA.",
         target = "teammate",
         effect = "buff",
         stat_used = "CHA",
@@ -104,6 +128,7 @@ public static class SkillList {
     };
     public static Skill BrainBoost = new Skill {
         name = "Brain Boost",
+        description = "Raises INT equal to CHA.",
         target = "teammate",
         effect = "buff",
         stat_used = "CHA",
@@ -114,6 +139,7 @@ public static class SkillList {
     };
     public static Skill Sanitize = new Skill {
         name = "Sanitize",
+        description = "Raises VIT equal to CHA.",
         target = "teammate",
         effect = "buff",
         stat_used = "CHA",
@@ -124,6 +150,7 @@ public static class SkillList {
     };
     public static Skill Sedate = new Skill {
         name = "Sedate",
+        description = "Lowers STR equal to INT.",
         target = "enemy",
         effect = "debuff",
         stat_used = "INT",
@@ -132,8 +159,21 @@ public static class SkillList {
         timing = true,
         aoe = false
     };
+    public static Skill Oversedate = new Skill {
+        name = "Oversedate",
+        description = "Lowers STR equal to INT*2, however the target's STR_mod will drop to 0 after STR is used once.",
+        target = "enemy",
+        effect = "debuff",
+        status = ["Oversedate"],
+        stat_used = "INT",
+        stat_affected = "STR",
+        multiplier = 2,
+        timing = true,
+        aoe = false
+    };
     public static Skill RizzDown = new Skill {
         name = "Rizz Down",
+        description = "Lowers CHA equal to INT.",
         target = "enemy",
         effect = "debuff",
         stat_used = "INT",
@@ -144,6 +184,7 @@ public static class SkillList {
     };
     public static Skill BrainBreak = new Skill {
         name = "Brain Break",
+        description = "Lowers INT equal to INT.",
         target = "enemy",
         effect = "debuff",
         stat_used = "INT",
@@ -154,16 +195,18 @@ public static class SkillList {
     };
     public static Skill Desanitize = new Skill {
         name = "Desanitize",
+        description = "Lowers VIT equal to INT.",
         target = "teammate",
-        effect = "buff",
+        effect = "debuff",
         stat_used = "INT",
         stat_affected = "VIT",
         multiplier = 1,
-        timing = false,
+        timing = true,
         aoe = false
     };
     public static Skill Courage = new Skill {
         name = "Courage",
+        description = "Restores HP equal to VIT/2.",
         target = "teammate",
         effect = "HP restore",
         stat_used = "VIT",
@@ -173,6 +216,7 @@ public static class SkillList {
     };
     public static Skill Hope = new Skill {
         name = "Hope",
+        description = "Restores HP equal to VIT/4 at the end of every turn.",
         target = "teammate",
         effect = "HV restore",
         stat_used = "VIT",
@@ -182,6 +226,7 @@ public static class SkillList {
     };
     public static Skill Faith = new Skill {
         name = "Faith",
+        description = "Adds VIT/8 to the target's HV at the end of every turn.",
         target = "teammate",
         effect = "HA restore",
         stat_used = "VIT",
@@ -191,6 +236,7 @@ public static class SkillList {
     };
     public static Skill SturdyStrike = new Skill {
         name = "Sturdy Strike",
+        description = "Deals damage equal to VIT/2.",
         target = "enemy",
         effect = "HP damage",
         stat_used = "VIT",
@@ -200,6 +246,7 @@ public static class SkillList {
     };
     public static Skill StylishStrike = new Skill {
         name = "Stylish Strike",
+        description = "Deals damage equal to CHA/2.",
         target = "enemy",
         effect = "HP damage",
         stat_used = "CHA",
@@ -209,6 +256,7 @@ public static class SkillList {
     };
     public static Skill SmartStrike = new Skill {
         name = "Smart Strike",
+        description = "Deals damage equal to INT/2.",
         target = "enemy",
         effect = "HP damage",
         stat_used = "INT",
@@ -218,6 +266,7 @@ public static class SkillList {
     };
     public static Skill TakeDown = new Skill {
         name = "Take Down",
+        description = "Deals damage equal to STR*1.5. Deals recoil damage equal to STR/2.",
         target = "enemy",
         effect = "HP damage",
         stat_used = "STR",
@@ -228,6 +277,7 @@ public static class SkillList {
     };
     public static Skill GigaImpact = new Skill {
         name = "Giga Impact",
+        description = "Deals damage equal to STR*2. Deals recoil damage equal to STR.",
         target = "enemy",
         effect = "HP damage",
         stat_used = "STR",
@@ -236,8 +286,20 @@ public static class SkillList {
         timing = true,
         aoe = false
     };
+    public static Skill SuicidalThoughts = new Skill {
+        name = "Suicidal Thoughts",
+        description = "Deals damage equal to STR, using the target's STR instead of the user's.",
+        target = "enemy",
+        effect = "HP damage",
+        stat_used = "Target STR",
+        multiplier = 1,
+        timing = true,
+        aoe = false
+    };
+    // Figure out how to make skills also use enemy stats
     public static Skill Ecstasy = new Skill {
         name = "Ecstasy",
+        description = "Raises a teammate's actions by 1 for this turn.",
         target = "teammate",
         effect = "actions +1",
         stat_used = "N/A",
@@ -248,12 +310,33 @@ public static class SkillList {
     };
     public static Skill Depression = new Skill {
         name = "Depression",
+        description = "Lowers an enemy's actions by 1 for this turn.",
         target = "enemy",
         effect = "actions -1",
         stat_used = "N/A",
         stat_affected = "turns",
         multiplier = 1,
         timing = false,
+        aoe = false
+    };
+    public static Skill Resurrection = new Skill {
+        name = "Resurrection",
+        description = "Restores HP equal to VIT/4. Effect is quadrupled if the target is downed.",
+        target = "teammate",
+        effect = "HP restore",
+        stat_used = "VIT",
+        multiplier = 0.25,
+        timing = false,
+        aoe = false
+    };
+    public static Skill Cremation = new Skill {
+        name = "Cremation",
+        description = "Deals damage equal to STR/2. Effect is quadrupled if the target is downed.",
+        target = "enemy",
+        effect = "HP damage",
+        stat_used = "STR",
+        multiplier = 0.5,
+        timing = true,
         aoe = false
     };
 }
@@ -291,38 +374,58 @@ public static class TeamSkillList {
     public static TeamSkill None = new TeamSkill {
         name = "N/A"
     };
-    public static TeamSkill Stopjitsu = new TeamSkill {
-        name = "Stopjitsu",
+    public static TeamSkill CycloneOfCreation = new TeamSkill {
+        name = "Cyclone of Creation",
         target = "enemy",
         effect = "HP damage",
         stat_used = "STR",
-        multiplier = 1,
+        multiplier = 2,
         timing = true,
         aoe = false,
         TP_cost = 3
     };
+    // This should do damage equally based on all of Bronson and Colt's stats
+    // (bronson_VIT + bronson_VIT_mod + bronson_STR + bronson_STR_mod + bronson_CHA + bronson_CHA_mod + bronson_INT + bronson_INT_mod + colt_VIT + colt_VIT_mod + colt_STR + colt_STR_mod + colt_CHA + colt_CHA_mod + colt_INT + colt_INT_mod) / 2
     public static TeamSkill BlackWhiteStrike = new TeamSkill {
         name = "Black-White Strike",
         target = "enemy",
         effect = "HP damage",
         stat_used = "STR",
-        multiplier = 1,
+        multiplier = 2,
         timing = true,
         aoe = false,
         TP_cost = 3
     };
+    // This should do damage based on Bronson and Clarissa's STR
+    // (bronson_STR + bronson_STR_mod + clarissa_STR + clarissa_STR_mod) * 2
+
+    public static TeamSkill LuckyCharmLandfill = new TeamSkill {
+        name = "Lucky Charm Landfill",
+        target = "enemy",
+        effect = "HP damage",
+        stat_used = "STR",
+        multiplier = 2,
+        timing = true,
+        aoe = false,
+        TP_cost = 3
+    };
+    // This should do damage based on Colt and Clarissa's STR, healing them a little based on their VIT
 }
 
 public class Rules {
-    public bool target_downed = false;
+    public bool target_downed = true;
     public bool team_skills = false;
+    public bool types = false;
+    public bool backup = false;
 };
 
 public class SaveData {
     public int semester = 1;
     public int battles_won = 0;
+    public int superbosses_slain = 0;
     public List<string> gradebook = new List<string>();
     public List<Combatant> player_team = new List<Combatant>();
+    public List<Skill> skill_inventory = new List<Skill>();
 }
 
 public static class BattleSystem {
@@ -435,6 +538,9 @@ public static class BattleSystem {
         }
         return optimal;
     }
+
+    // Note to self: You can simply combine EnemyTargetingHighestPlayerSTR() and EnemyTargetingHighestEnemySTR()
+    // Perhaps you could simply pass in the team you want the enemies to target?
 
     public static void ResetMods(Team player_team) {
         for (int i = 0; i < player_team.team.Count; i++) {
@@ -549,7 +655,7 @@ public static class BattleSystem {
         }
     }
 
-    public static int SkillEffectValue(Combatant user, Skill skill) {
+    public static int SkillEffectValue(Combatant user, Combatant target, Skill skill) {
         int effect_value = 0;
         if (skill.stat_used == "VIT") {
             effect_value = user.VIT + user.VIT_mod;
@@ -563,6 +669,9 @@ public static class BattleSystem {
         else if (skill.stat_used == "INT") {
             effect_value = user.INT + user.INT_mod;
         }
+        else if (skill.stat_used == "Target STR") {
+            effect_value = target.STR + target.STR_mod;
+        }
         return effect_value;
     }
 
@@ -572,6 +681,9 @@ public static class BattleSystem {
 
         if (skill.timing == true && user_is_enemy == true) {
             timing_multiplier = Timing();
+            if (timing_multiplier >= 1) {
+                timing_multiplier = 1;
+            }
         }
 
         double total_multiplier = toggle_multiplier * timing_multiplier * skill.multiplier;
@@ -626,6 +738,9 @@ public static class BattleSystem {
         if (target.formation == "Backup") {
             formation_multiplier = 0.5;
         }
+        else if (target.formation == "Backup 2") {
+            formation_multiplier = 0;
+        }
 
         return formation_multiplier;
     }
@@ -637,6 +752,9 @@ public static class BattleSystem {
 
     public static void RestoreHP(Combatant target, int healing) {
         target.HP += healing;
+        if (target.HP > target.maxHP) {
+            target.HP = target.maxHP;
+        }
         CheckIfDowned(target);
     }
 
@@ -647,6 +765,11 @@ public static class BattleSystem {
         }
         if (skill.stat_used == "STR") {
             user.STR_mod /= 2;
+            if (user.status.Contains("Overstimulate") || user.status.Contains("Oversedate")) {
+                user.STR_mod = 0;
+                user.status.Remove("Overstimulate");
+                user.status.Remove("Oversedate");
+            }
             ToggleCon(user, "STR");
         }
         if (skill.stat_used == "CHA") {
@@ -660,13 +783,47 @@ public static class BattleSystem {
     }
 
     public static void UseSkill(Skill skill, Combatant user, Team player_team, Team enemy_team, int target, bool user_is_enemy = false) {
+        // UseSkill(SkillList.Attack, enemy_team.team[i], enemy_team, player_team, target, true);
         Console.WriteLine(user.name + " uses " + skill.name + "!");
 
-        int effect_value = SkillEffectValue(user, skill);
+        int effect_value = 0;
+        if (skill.target == "teammate") {
+            effect_value = SkillEffectValue(user, player_team.team[target], skill);
+        }
+        else if (skill.target == "enemy") {
+            effect_value = SkillEffectValue(user, enemy_team.team[target], skill);
+        }
         double effect_multiplier = SkillEffectMultiplier(user, skill, user_is_enemy);
+
         double type_multiplier = 1;
 
         double total_effect_value = effect_value * effect_multiplier;
+
+        if (skill.name == "Resurrection") {
+            if (player_team.team[target].alive == false) {
+                total_effect_value *= 4;
+            }
+        }
+        if (skill.name == "Cremation") {
+            if (enemy_team.team[target].alive == false) {
+                total_effect_value *= 4;
+            }
+        }
+
+        // logic for hyper beam
+        /*
+        if (skill.status.Contains("Charge")) {
+            if (!user.status.Contains("Charge")) {
+                total_effect_value = 0;
+                user.status.Add("Charge");
+                Console.WriteLine(user.name + " is charging up!");
+            }
+            else {
+                user.status.Remove("Charge");
+                Console.WriteLine(user.name + " releases charged-up energy!");
+            }
+        }
+        */
 
         if (skill.effect == "HP damage") {
             if (IsMultiTarget(user, skill)) {
@@ -712,92 +869,92 @@ public static class BattleSystem {
         }
         if (skill.effect == "HP restore") {
             if (IsMultiTarget(user, skill)) {
-                for (int i = 0; i < enemy_team.team.Count; i++) {
-                    type_multiplier = TypeMultiplier(user, enemy_team.team[i]);
-                    RestoreHP(enemy_team.team[i], (int)(total_effect_value * type_multiplier));
+                for (int i = 0; i < player_team.team.Count; i++) {
+                    type_multiplier = TypeMultiplier(user, player_team.team[i]);
+                    RestoreHP(player_team.team[i], (int)(total_effect_value * type_multiplier));
                 }
                 Console.WriteLine("All teammates restored " + (int)(total_effect_value * type_multiplier) + " HP!");
             }
             else {
-                type_multiplier = TypeMultiplier(user, enemy_team.team[target]);
-                RestoreHP(enemy_team.team[target], (int)(total_effect_value * type_multiplier));
-                Console.WriteLine(enemy_team.team[target].name + " restored " + (int)(total_effect_value * type_multiplier) + " HP!");
+                type_multiplier = TypeMultiplier(user, player_team.team[target]);
+                RestoreHP(player_team.team[target], (int)(total_effect_value * type_multiplier));
+                Console.WriteLine(player_team.team[target].name + " restored " + (int)(total_effect_value * type_multiplier) + " HP!");
             }
         }
         if (skill.effect == "HV restore") {
             if (IsMultiTarget(user, skill)) {
-                for (int i = 0; i < enemy_team.team.Count; i++) {
-                    type_multiplier = TypeMultiplier(user, enemy_team.team[i]);
-                    enemy_team.team[i].HV += (int)(total_effect_value * type_multiplier);
+                for (int i = 0; i < player_team.team.Count; i++) {
+                    type_multiplier = TypeMultiplier(user, player_team.team[i]);
+                    player_team.team[i].HV += (int)(total_effect_value * type_multiplier);
                 }
                 Console.WriteLine("All teammates will restore " + (int)(total_effect_value * type_multiplier) + " HP at the end of every turn!");
             }
             else {
-                type_multiplier = TypeMultiplier(user, enemy_team.team[target]);
-                enemy_team.team[target].HV += (int)(total_effect_value * type_multiplier);
-                Console.WriteLine(enemy_team.team[target].name + " will restore " + (int)(total_effect_value * type_multiplier) + " HP at the end of every turn!");
+                type_multiplier = TypeMultiplier(user, player_team.team[target]);
+                player_team.team[target].HV += (int)(total_effect_value * type_multiplier);
+                Console.WriteLine(player_team.team[target].name + " will restore " + (int)(total_effect_value * type_multiplier) + " HP at the end of every turn!");
             }
         }
         if (skill.effect == "HA restore") {
             if (IsMultiTarget(user, skill)) {
-                for (int i = 0; i < enemy_team.team.Count; i++) {
-                    type_multiplier = TypeMultiplier(user, enemy_team.team[i]);
-                    enemy_team.team[i].HA += (int)(total_effect_value * type_multiplier);
+                for (int i = 0; i < player_team.team.Count; i++) {
+                    type_multiplier = TypeMultiplier(user, player_team.team[i]);
+                    player_team.team[i].HA += (int)(total_effect_value * type_multiplier);
                 }
                 Console.WriteLine("All teammates will restore an additional " + (int)(total_effect_value * type_multiplier) + " HP every turn, gradually accumulating by that amount!");
             }
             else {
-                type_multiplier = TypeMultiplier(user, enemy_team.team[target]);
-                enemy_team.team[target].HA += (int)(total_effect_value * type_multiplier);
-                Console.WriteLine(enemy_team.team[target].name + " will restore an additional " + (int)(total_effect_value * type_multiplier) + " HP every turn, gradually accumulating by that amount!");
+                type_multiplier = TypeMultiplier(user, player_team.team[target]);
+                player_team.team[target].HA += (int)(total_effect_value * type_multiplier);
+                Console.WriteLine(player_team.team[target].name + " will restore an additional " + (int)(total_effect_value * type_multiplier) + " HP every turn, gradually accumulating by that amount!");
             }
         }
         if (skill.effect == "buff") {
             if (skill.stat_affected == "VIT") {
                 if (IsMultiTarget(user, skill)) {
                     for (int i = 0; i < player_team.team.Count; i++) {
-                        type_multiplier = TypeMultiplier(user, enemy_team.team[i]);
+                        type_multiplier = TypeMultiplier(user, player_team.team[i]);
                         player_team.team[i].VIT_mod += (int)(total_effect_value * type_multiplier);
                     }
                 }
                 else {
-                    type_multiplier = TypeMultiplier(user, enemy_team.team[target]);
+                    type_multiplier = TypeMultiplier(user, player_team.team[target]);
                     player_team.team[target].VIT_mod += (int)(total_effect_value * type_multiplier);
                 }
             }
             if (skill.stat_affected == "STR") {
                 if (IsMultiTarget(user, skill)) {
                     for (int i = 0; i < player_team.team.Count; i++) {
-                        type_multiplier = TypeMultiplier(user, enemy_team.team[i]);
+                        type_multiplier = TypeMultiplier(user, player_team.team[i]);
                         player_team.team[i].STR_mod += (int)(total_effect_value * type_multiplier);
                     }
                 }
                 else {
-                    type_multiplier = TypeMultiplier(user, enemy_team.team[target]);
+                    type_multiplier = TypeMultiplier(user, player_team.team[target]);
                     player_team.team[target].STR_mod += (int)(total_effect_value * type_multiplier);
                 }
             }
             if (skill.stat_affected == "CHA") {
                 if (IsMultiTarget(user, skill)) {
                     for (int i = 0; i < player_team.team.Count; i++) {
-                        type_multiplier = TypeMultiplier(user, enemy_team.team[i]);
+                        type_multiplier = TypeMultiplier(user, player_team.team[i]);
                         player_team.team[i].CHA_mod += (int)(total_effect_value * type_multiplier);
                     }
                 }
                 else {
-                    type_multiplier = TypeMultiplier(user, enemy_team.team[target]);
+                    type_multiplier = TypeMultiplier(user, player_team.team[target]);
                     player_team.team[target].CHA_mod += (int)(total_effect_value * type_multiplier);
                 }
             }
             if (skill.stat_affected == "INT") {
                 if (IsMultiTarget(user, skill)) {
                     for (int i = 0; i < player_team.team.Count; i++) {
-                        type_multiplier = TypeMultiplier(user, enemy_team.team[i]);
+                        type_multiplier = TypeMultiplier(user, player_team.team[i]);
                         player_team.team[i].INT_mod += (int)(total_effect_value * type_multiplier);
                     }
                 }
                 else {
-                    type_multiplier = TypeMultiplier(user, enemy_team.team[target]);
+                    type_multiplier = TypeMultiplier(user, player_team.team[target]);
                     player_team.team[target].INT_mod += (int)(total_effect_value * type_multiplier);
                 }
             }
@@ -873,8 +1030,8 @@ public static class BattleSystem {
         }
 
         if (skill.effect == "actions -1") {
-            player_team.team[target].actions -= 1;
-            Console.WriteLine(player_team.team[target].name + " lost an action this turn!");
+            enemy_team.team[target].actions -= 1;
+            Console.WriteLine(enemy_team.team[target].name + " lost an action this turn!");
         }
 
         if (skill.recoil > 0) {
@@ -883,10 +1040,32 @@ public static class BattleSystem {
             Console.WriteLine(user.name + " took " + recoil_damage + " recoil damage!");
         }
 
+        if (skill.target == "teammate") {
+            for (int i = 0; i < skill.status.Count(); i++) {
+                player_team.team[target].status.Add(skill.status[i]);
+            }
+        }
+        else if (skill.target == "enemy") {
+            for (int i = 0; i < skill.status.Count(); i++) {
+                enemy_team.team[target].status.Add(skill.status[i]);
+            }
+        }
+
         StatModDecay(user, skill);
 
         user.actions -= 1;
     }
+
+    public static int IndexOfCombatant(Team team, Combatant combatant) {
+        int index = -1;
+        for (int i = 0; i < team.team.Count; i++) {
+            if (team.team[i].name == combatant.name) {
+                index = i;
+            }
+        }
+        return index;
+    }
+    // Used for team skills to check if the other person you need is alive
 
     public static void Analyze(Combatant target, SaveData save_data) {
         Console.WriteLine(target.name);
@@ -897,6 +1076,7 @@ public static class BattleSystem {
         Console.WriteLine("STR: " + target.STR + " + " + target.STR_mod + " = " + (target.STR + target.STR_mod));
         Console.WriteLine("CHA: " + target.CHA + " + " + target.CHA_mod + " = " + (target.CHA + target.CHA_mod));
         Console.WriteLine("INT: " + target.INT + " + " + target.INT_mod + " = " + (target.INT + target.INT_mod));
+        Console.WriteLine("Status: " + target.status);
         if (save_data.semester >= 3) {
             Console.WriteLine("Type: " + target.type);
         }
@@ -926,24 +1106,26 @@ public static class BattleSystem {
             enemy_team.team[i].alive = true;
         }
 
+        player_team.TP = 0;
+
         // while (living_player_team > 0 && living_enemy_team > 0) {
         while (BothTeamsStanding(player_team, enemy_team) == true) {
             for (int i = 0; i < player_team.team.Count; i++) {
-                Console.WriteLine(player_team.team[i].name + " HP: " + player_team.team[i].HP);
+                Console.WriteLine(player_team.team[i].name + " HP: " + player_team.team[i].HP + "/" + player_team.team[i].maxHP);
                 player_team.team[i].actions = 1;
             }
             if (save_data.semester >= 2) {
                 Console.WriteLine("Party TP: " + player_team.TP);
             }
             for (int i = 0; i < enemy_team.team.Count; i++) {
-                Console.WriteLine(enemy_team.team[i].name + " HP: " + enemy_team.team[i].HP);
+                Console.WriteLine(enemy_team.team[i].name + " HP: " + enemy_team.team[i].HP + "/" + enemy_team.team[i].maxHP);
                 enemy_team.team[i].actions = 1;
             }
 
             int target = -1;
 
             for (int i = 0; i < player_team.team.Count; i++) {
-                if (player_team.team[i].alive == true) {
+                if ((player_team.team[i].alive == true) && (player_team.team[i].formation == "Active")) {
                     while (player_team.team[i].actions > 0) {
                         if (BothTeamsStanding(player_team, enemy_team) == false) {
                             break;
@@ -953,7 +1135,7 @@ public static class BattleSystem {
                         Console.WriteLine("2. " + player_team.team[i].skills[1].name);
                         Console.WriteLine("3. " + player_team.team[i].skills[2].name);
                         Console.WriteLine("4. " + player_team.team[i].skills[3].name + " \n");
-                        Console.WriteLine("ABILITY: " + player_team.team[i].toggles[0].name + " \n");
+                        Console.WriteLine("ABILITY: " + player_team.team[i].toggles[0].name + " (Active: " + player_team.team[i].toggle + ")" + " \n");
                         if (save_data.semester >= 2) {
                             Console.WriteLine("T1. " + player_team.team[i].team_skills[0].name);
                             Console.WriteLine("T2. " + player_team.team[i].team_skills[1].name + " \n");
@@ -965,8 +1147,11 @@ public static class BattleSystem {
                         if (save_data.semester >= 2) {
                             Console.WriteLine("Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle ability, 6 to Analyze, 7-8 for team skills: ");
                         }
+                        if (save_data.semester >= 4) {
+                            Console.WriteLine("Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle ability, 6 to Analyze, 7-8 for team skills, 9 to switch: ");
+                        }
                         // while ((command != 1 && command != 2 && command != 3 && command != 4 && command != 5 && command != 6) && ((command != 7) || (save_data.semester >= 2)) && ((command != 8) || (save_data.semester >= 2))) {
-                        while ((command != 1 && command != 2 && command != 3 && command != 4 && command != 5 && command != 6) && ((command != 7) || (save_data.semester < 2)) && ((command != 8) || (save_data.semester < 2))) {
+                        while ((command != 1 && command != 2 && command != 3 && command != 4 && command != 5 && command != 6) && ((command != 7) || (save_data.semester < 2)) && ((command != 8) || (save_data.semester < 2)) && ((command != 9) || (save_data.semester < 4))) {
                             if (!int.TryParse(Console.ReadLine(), out command)) {
                                 if (save_data.semester == 1) {
                                     Console.WriteLine("Invalid! Hey you, whatcha gonna do? 1-4 for skills, 5 to toggle ability, 6 to Analyze: ");
@@ -1000,10 +1185,30 @@ public static class BattleSystem {
                             if (player_team.team[i].team_skills[command-7] == TeamSkillList.None) {
                                 Console.WriteLine("This skill slot is empty!");
                             }
-                            else if (player_team.team[i].team_skills[command-7] == TeamSkillList.Stopjitsu) {
+                            else if (player_team.team[i].team_skills[command-7] == TeamSkillList.CycloneOfCreation) {
                                 if (player_team.TP >= player_team.team[i].team_skills[command-7].TP_cost) {
                                     target = PlayerTargeting(enemy_team, "enemy", rules);
-                                    UseSkill(SkillList.Attack, player_team.team[i], player_team, enemy_team, target);
+                                    UseSkill(TeamSkillList.CycloneOfCreation, player_team.team[i], player_team, enemy_team, target);
+                                    player_team.TP -= player_team.team[i].team_skills[command-7].TP_cost;
+                                }
+                                else {
+                                    Console.WriteLine("Not enough TP!");
+                                }
+                            }
+                            else if (player_team.team[i].team_skills[command-7] == TeamSkillList.BlackWhiteStrike) {
+                                if (player_team.TP >= player_team.team[i].team_skills[command-7].TP_cost) {
+                                    target = PlayerTargeting(enemy_team, "enemy", rules);
+                                    UseSkill(TeamSkillList.BlackWhiteStrike, player_team.team[i], player_team, enemy_team, target);
+                                    player_team.TP -= player_team.team[i].team_skills[command-7].TP_cost;
+                                }
+                                else {
+                                    Console.WriteLine("Not enough TP!");
+                                }
+                            }
+                            else if (player_team.team[i].team_skills[command-7] == TeamSkillList.LuckyCharmLandfill) {
+                                if (player_team.TP >= player_team.team[i].team_skills[command-7].TP_cost) {
+                                    target = PlayerTargeting(enemy_team, "enemy", rules);
+                                    UseSkill(TeamSkillList.LuckyCharmLandfill, player_team.team[i], player_team, enemy_team, target);
                                     player_team.TP -= player_team.team[i].team_skills[command-7].TP_cost;
                                 }
                                 else {
@@ -1011,91 +1216,63 @@ public static class BattleSystem {
                                 }
                             }
                         }
+                        else if (command == 9) {
+                            Console.WriteLine("Who will switch into " + player_team.team[i].name + "'s position?: ");
+                            if (player_team.team.Count == 4) {
+                                Console.WriteLine("BACKUP");
+                                Console.WriteLine("4. " + player_team.team[3].name);
+                            }
+                            continue;
+                            // TODO: Basically this should have you choose between whoever's in Backup to switch your current member,
+                            // this does not take a turn and whoever you switch into immediately gets to act.
+                        }
                         else if (command == 5) {
-                            if (player_team.team[i].toggle == false) {
-                                player_team.team[i].toggle = true;
-                                Console.WriteLine(player_team.team[i].name + " activates " + player_team.team[i].toggles[0].name + ".");
+                            if (player_team.team[i].toggles[0] == ToggleList.Multitype) {
+                                int type = -1;
+                                Console.WriteLine("Which type will " + player_team.team[i].name + " switch to? 0 for Neutral, 1 for Heat, 2 for Cold: ");
+                                while (type != 0 && type != 1 && type != 2) {
+                                    if (!int.TryParse(Console.ReadLine(), out type)) {
+                                        Console.WriteLine("Invalid! Which type will " + player_team.team[i].name + " switch to? 0 for Neutral, 1 for Heat, 2 for Cold: ");
+                                        type = -1;
+                                    }
+                                }
+                                if (type == 0) {
+                                    player_team.team[i].type = "Neutral";
+                                    Console.WriteLine(player_team.team[i].name + " becomes Neutral type!");
+                                }
+                                else if (type == 1) {
+                                    player_team.team[i].type = "Heat";
+                                    Console.WriteLine(player_team.team[i].name + " becomes Heat type!");
+                                }
+                                else if (type == 2) {
+                                    player_team.team[i].type = "Cold";
+                                    Console.WriteLine(player_team.team[i].name + " becomes Cold type!");
+                                }
                             }
                             else {
-                                player_team.team[i].toggle = false;
-                                Console.WriteLine(player_team.team[i].name + " deactivates " + player_team.team[i].toggles[0].name + ".");
+                                if (player_team.team[i].toggle == false) {
+                                    player_team.team[i].toggle = true;
+                                    Console.WriteLine(player_team.team[i].name + " activates " + player_team.team[i].toggles[0].name + ".");
+                                }
+                                else {
+                                    player_team.team[i].toggle = false;
+                                    Console.WriteLine(player_team.team[i].name + " deactivates " + player_team.team[i].toggles[0].name + ".");
+                                }
                             }
                         }
                         else if (command == 1 || command == 2 || command == 3 || command == 4) {
                             if (player_team.team[i].skills[command-1] == SkillList.None) {
                                 Console.WriteLine("This skill slot is empty!");
                             }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Attack) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.Attack, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Migraine) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.Migraine, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.ChronicPain) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.ChronicPain, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Stimulate) {
-                                target = PlayerTargeting(player_team, "teammate", rules);
-                                UseSkill(SkillList.Stimulate, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.RizzUp) {
-                                target = PlayerTargeting(player_team, "teammate", rules);
-                                UseSkill(SkillList.RizzUp, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.BrainBoost) {
-                                target = PlayerTargeting(player_team, "teammate", rules);
-                                UseSkill(SkillList.BrainBoost, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Sanitize) {
-                                target = PlayerTargeting(player_team, "teammate", rules);
-                                UseSkill(SkillList.Sanitize, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Sedate) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.Sedate, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.RizzDown) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.RizzDown, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.BrainBreak) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.BrainBreak, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Desanitize) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.BrainBreak, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Courage) {
-                                target = PlayerTargeting(player_team, "teammate", rules);
-                                UseSkill(SkillList.Courage, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Hope) {
-                                target = PlayerTargeting(player_team, "teammate", rules);
-                                UseSkill(SkillList.Hope, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.Faith) {
-                                target = PlayerTargeting(player_team, "teammate", rules);
-                                UseSkill(SkillList.Faith, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.SturdyStrike) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.SturdyStrike, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.StylishStrike) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.StylishStrike, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.SmartStrike) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.SmartStrike, player_team.team[i], player_team, enemy_team, target);
-                            }
-                            else if (player_team.team[i].skills[command-1] == SkillList.TakeDown) {
-                                target = PlayerTargeting(enemy_team, "enemy", rules);
-                                UseSkill(SkillList.TakeDown, player_team.team[i], player_team, enemy_team, target);
+                            else {
+                                Skill skill = player_team.team[i].skills[command-1];
+                                if (skill.target == "teammate") {
+                                    target = PlayerTargeting(player_team, "teammate", rules);
+                                }
+                                else if (skill.target == "enemy") {
+                                    target = PlayerTargeting(enemy_team, "enemy", rules);
+                                }
+                                UseSkill(skill, player_team.team[i], player_team, enemy_team, target);
                             }
                         }
                     }
@@ -1104,14 +1281,14 @@ public static class BattleSystem {
 
             target = -1;
             for (int i = 0; i < enemy_team.team.Count; i++) {
-                if (enemy_team.team[i].alive == true) {
+                if (enemy_team.team[i].alive == true && enemy_team.team[i].actions > 0) {
                     // if (living_player_team <= 0 || living_enemy_team <= 0) {
                     if (BothTeamsStanding(player_team, enemy_team) == false) {
-                        break; 
+                        break;
                     }
 
                     if (enemy_team.team[i].name == "Dainty Detergent" || enemy_team.team[i].name == "Stella" || enemy_team.team[i].name == "Lovebird" || enemy_team.team[i].name == "Glad Doctor" || enemy_team.team[i].name == "CARRIE" || enemy_team.team[i].name == "Louie") {
-                        target = EnemyTargetingHighestEnemySTR(player_team);
+                        target = EnemyTargetingHighestEnemySTR(enemy_team);
                         if (enemy_team.team[target].STR_mod <= 0) {
                             UseSkill(SkillList.Stimulate, enemy_team.team[i], enemy_team, player_team, target, true);
                         }
@@ -1149,17 +1326,6 @@ public static class BattleSystem {
             if (save_data.semester >= 2) {
                 player_team.TP += 1;
             }
-
-            /*
-            if (living_enemy_team == 0) {
-                break;
-            }
-
-            if (living_player_team == 0) {
-                Console.WriteLine("GAME OVER");
-                Environment.Exit(0);
-            }
-            */
 
             if (TeamStanding(enemy_team) == false) {
                 break;
@@ -1389,17 +1555,7 @@ public static class BattleSystem {
                 continue;
             }
             else if (command == 4) {
-                save_data.player_team = player_team.team;
-
-                var options = new JsonSerializerOptions {
-                    IncludeFields = true,
-                    WriteIndented = true
-                };
-
-                string json = JsonSerializer.Serialize(save_data, options);
-                File.WriteAllText("save.json", json);
-
-                Console.WriteLine("The save system is currently a work-in-progress. ");
+                SaveGame(save_data, player_team, inventory);
                 continue;
             }
             else if (command == 5) {
@@ -1407,6 +1563,45 @@ public static class BattleSystem {
                 in_tazewell = false;
             }
         }
+    }
+
+    public static void SaveGame(SaveData save_data, Team player_team, Inventory inventory) { // (Mostly) works as intended.
+        save_data.player_team = player_team.team;
+        save_data.skill_inventory = inventory.skills;
+
+        var options = new JsonSerializerOptions {
+            IncludeFields = true,
+            WriteIndented = true
+        };
+
+        string json = JsonSerializer.Serialize(save_data, options);
+        File.WriteAllText("save.json", json);
+        Console.WriteLine("Game saved successfully.");
+    }
+
+    public static SaveData LoadGame() { // (Mostly) works as intended.
+        if (File.Exists("save.json") == false) {
+            Console.WriteLine("Save data could not be found.");
+            return null;
+        }
+
+        var options = new JsonSerializerOptions {
+            IncludeFields = true,
+            WriteIndented = true
+        };
+
+        string json = File.ReadAllText("save.json");
+
+        SaveData loaded_data = JsonSerializer.Deserialize<SaveData>(json, options);
+
+        if (loaded_data == null) {
+            Console.WriteLine("Save data could not be found.");
+            return null;
+        }
+
+        Console.WriteLine("Save data loaded successfully.");
+
+        return loaded_data;
     }
 
     public static void RunGame() {
@@ -1429,10 +1624,16 @@ public static class BattleSystem {
         }
 
         if (choice == 2) {
-            Dialogue("The save file loading system is currently a work-in-progress.");
+            SaveData loaded_data = LoadGame();
+
+            if (loaded_data != null) {
+                save_data = loaded_data;
+                player_team.team = save_data.player_team;
+                inventory.skills = save_data.skill_inventory;
+            }
         }
 
-        if (save_data.battles_won < 4) {
+        if ((save_data.battles_won - save_data.superbosses_slain) < 4) {
             Dialogue("CENSORY - SEMESTER 1");
             Dialogue("CARRIED-OVER TRAUMA");
             Dialogue("BOSWELL HALL - 3:00 PM");
@@ -1492,173 +1693,302 @@ public static class BattleSystem {
         }
 
         // insert goofy ahh side cutscene here
-        Tazewell(player_team, inventory, rules, save_data);
 
-        // insert pre-mission cutscene here
-        Combatant colt = new Combatant {name = "Colt", VIT = 6, STR = 6, CHA = 6, INT = 6};
-        colt.skills = new List<Skill> { SkillList.Attack, SkillList.RizzUp, SkillList.RizzDown, SkillList.None };
-        colt.toggles = new List<Toggle> { ToggleList.CoinFlip };
-        colt.team_skills = new List<TeamSkill> { TeamSkillList.None, TeamSkillList.None };
-        player_team.team.Add(colt);
-        inventory.skills.Add(SkillList.RizzUp);
-        inventory.skills.Add(SkillList.RizzDown);
+        if ((save_data.battles_won - save_data.superbosses_slain) < 8) {
+            Tazewell(player_team, inventory, rules, save_data);
 
-        Console.WriteLine("BATTLE 1-2-1: AVERAGE JOE DUO \n");
-        Combatant average_joe_2 = new Combatant {name = "Average Joe", VIT = 8, STR = 8, CHA = 8, INT = 8};
-        Combatant average_joe_3 = new Combatant {name = "Average Joe", VIT = 8, STR = 8, CHA = 8, INT = 8};
-        enemy_team = new Team { team = new List<Combatant> { average_joe_2, average_joe_3 } };
-        Battle(player_team, enemy_team, rules, save_data);
+            // insert pre-mission cutscene here
 
-        Console.WriteLine("BATTLE 1-2-2: DAINTY DETERGENT DUO \n");
-        Combatant dainty_detergent_1 = new Combatant {name = "Dainty Detergent", VIT = 8, STR = 4, CHA = 16, INT = 4};
-        Combatant dainty_detergent_2 = new Combatant {name = "Dainty Detergent", VIT = 8, STR = 4, CHA = 16, INT = 4};
-        enemy_team = new Team { team = new List<Combatant> { dainty_detergent_1, dainty_detergent_2 } };
-        Battle(player_team, enemy_team, rules, save_data);
+            Combatant colt = new Combatant {name = "Colt", VIT = 6, STR = 6, CHA = 6, INT = 6};
+            colt.skills = new List<Skill> { SkillList.Attack, SkillList.RizzUp, SkillList.RizzDown, SkillList.None };
+            colt.toggles = new List<Toggle> { ToggleList.CoinFlip };
+            colt.team_skills = new List<TeamSkill> { TeamSkillList.None, TeamSkillList.None };
+            player_team.team.Add(colt);
+            inventory.skills.Add(SkillList.RizzUp);
+            inventory.skills.Add(SkillList.RizzDown);
 
-        Console.WriteLine("BATTLE 1-2-3: BRAINY BROOM DUO \n");
-        Combatant brainy_broom_1 = new Combatant {name = "Brainy Broom", VIT = 8, STR = 4, CHA = 4, INT = 16};
-        Combatant brainy_broom_2 = new Combatant {name = "Brainy Broom", VIT = 8, STR = 4, CHA = 4, INT = 16};
-        enemy_team = new Team { team = new List<Combatant> { brainy_broom_1, brainy_broom_2 } };
-        Battle(player_team, enemy_team, rules, save_data);
+            Console.WriteLine("BATTLE 1-2-1: AVERAGE JOE DUO \n");
+            Combatant average_joe_2 = new Combatant {name = "Average Joe", VIT = 8, STR = 8, CHA = 8, INT = 8};
+            Combatant average_joe_3 = new Combatant {name = "Average Joe", VIT = 8, STR = 8, CHA = 8, INT = 8};
+            enemy_team = new Team { team = new List<Combatant> { average_joe_2, average_joe_3 } };
+            Battle(player_team, enemy_team, rules, save_data);
 
-        // insert pre-boss cutscene here
-        Console.WriteLine("BATTLE 1-2-4: STELLA THE MOON MAIDEN \n");
-        Combatant stella = new Combatant {name = "Stella", VIT = 20, STR = 10, CHA = 25, INT = 25};
-        enemy_team = new Team { team = new List<Combatant> { stella } };
-        Battle(player_team, enemy_team, rules, save_data);
-        // insert post-boss cutscene here
+            Console.WriteLine("BATTLE 1-2-2: DAINTY DETERGENT DUO \n");
+            Combatant dainty_detergent_1 = new Combatant {name = "Dainty Detergent", VIT = 8, STR = 4, CHA = 16, INT = 4};
+            Combatant dainty_detergent_2 = new Combatant {name = "Dainty Detergent", VIT = 8, STR = 4, CHA = 16, INT = 4};
+            enemy_team = new Team { team = new List<Combatant> { dainty_detergent_1, dainty_detergent_2 } };
+            Battle(player_team, enemy_team, rules, save_data);
 
-        // insert goofy ahh side cutscene here
-        Tazewell(player_team, inventory, rules, save_data);
+            Console.WriteLine("BATTLE 1-2-3: BRAINY BROOM DUO \n");
+            Combatant brainy_broom_1 = new Combatant {name = "Brainy Broom", VIT = 8, STR = 4, CHA = 4, INT = 16};
+            Combatant brainy_broom_2 = new Combatant {name = "Brainy Broom", VIT = 8, STR = 4, CHA = 4, INT = 16};
+            enemy_team = new Team { team = new List<Combatant> { brainy_broom_1, brainy_broom_2 } };
+            Battle(player_team, enemy_team, rules, save_data);
 
-        // insert pre-mission cutscene here
-        Combatant peter = new Combatant {name = "Peter", VIT = 7, STR = 7, CHA = 7, INT = 7};
-        peter.skills = new List<Skill> { SkillList.Attack, SkillList.BrainBoost, SkillList.BrainBreak, SkillList.None };
-        peter.toggles = new List<Toggle> { ToggleList.Distribute };
-        peter.team_skills = new List<TeamSkill> { TeamSkillList.None, TeamSkillList.None };
-        player_team.team.Add(peter);
-        inventory.skills.Add(SkillList.BrainBoost);
-        inventory.skills.Add(SkillList.BrainBreak);
-
-        Console.WriteLine("BATTLE 1-3-1: AVERAGE JOE THREESOME \n");
-        Combatant average_joe_4 = new Combatant {name = "Average Joe", VIT = 10, STR = 10, CHA = 10, INT = 10};
-        Combatant average_joe_5 = new Combatant {name = "Average Joe", VIT = 10, STR = 10, CHA = 10, INT = 10};
-        Combatant average_joe_6 = new Combatant {name = "Average Joe", VIT = 10, STR = 10, CHA = 10, INT = 10};
-        enemy_team = new Team { team = new List<Combatant> { average_joe_4, average_joe_5, average_joe_6 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        Console.WriteLine("BATTLE 1-3-2: HEARTSTEALERS \n");
-        Combatant lovebird_1 = new Combatant {name = "Lovebird", VIT = 12, STR = 4, CHA = 20, INT = 4};
-        Combatant bumbling_burglar_2 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 24, CHA = 4, INT = 4};
-        Combatant dainty_detergent_3 = new Combatant {name = "Dainty Detergent", VIT = 16, STR = 4, CHA = 16, INT = 4};
-        enemy_team = new Team { team = new List<Combatant> { lovebird_1, bumbling_burglar_2, dainty_detergent_3 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        Console.WriteLine("BATTLE 1-3-3: LOVE TRIANGLE \n");
-        Combatant lovebird_2 = new Combatant {name = "Lovebird", VIT = 8, STR = 4, CHA = 24, INT = 4};
-        Combatant hatebee_1 = new Combatant {name = "Hatebee", VIT = 8, STR = 24, CHA = 4, INT = 4};
-        Combatant ambivalant_1 = new Combatant {name = "Ambivalant", VIT = 8, STR = 4, CHA = 4, INT = 24};
-        enemy_team = new Team { team = new List<Combatant> { lovebird_2, hatebee_1, ambivalant_1 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        // insert pre-boss cutscene here
-        Console.WriteLine("BATTLE 1-3-4: COLONEL EIGEN \n");
-        Combatant eigen = new Combatant {name = "Colonel Eigen", VIT = 50, STR = 40, CHA = 30, INT = 30};
-        enemy_team = new Team { team = new List<Combatant> { eigen } };
-        Battle(player_team, enemy_team, rules, save_data);
-        // insert post-boss cutscene here
-
-        // insert goofy ahh side cutscene here
-        inventory.skills.Add(SkillList.Courage);
-        Dialogue("For defeating Colonel Eigen, you can now equip the skill Courage.");
-        Tazewell(player_team, inventory, rules, save_data);
-
-        choice = 0;
-        Console.WriteLine("You hear howling near Swem Library... will you investigate? Type 1 if yes, 0 if no.\n");
-        Console.WriteLine("NOTE: This is an optional challenge, and it will be your hardest one yet. Please think twice before proceeding.");
-        while (!int.TryParse(Console.ReadLine(), out choice) || (choice != 1 && choice != 0)) {
-            Console.WriteLine("Invalid! Which skill will you put in its place? 1 for the first slot, 2 for the second slot, etc: ");
-            choice = 0;
-        }
-
-        // insert pre-boss cutscene here
-        if (choice == 1) {
             // insert pre-boss cutscene here
-            Console.WriteLine("OPTIONAL SUPERBOSS 1-1: LIBRARY CORGIS \n");
-            Combatant nellie = new Combatant {name = "Nellie", VIT = 20, STR = 5, CHA = 5, INT = 20};
-            Combatant tucker = new Combatant {name = "Tucker", VIT = 20, STR = 20, CHA = 5, INT = 5};
-            Combatant louie = new Combatant {name = "Louie", VIT = 20, STR = 5, CHA = 20, INT = 5};
-            enemy_team = new Team { team = new List<Combatant> { nellie, tucker, louie } };
+            Console.WriteLine("BATTLE 1-2-4: STELLA THE MOON MAIDEN \n");
+            Combatant stella = new Combatant {name = "Stella", VIT = 20, STR = 10, CHA = 25, INT = 25};
+            enemy_team = new Team { team = new List<Combatant> { stella } };
             Battle(player_team, enemy_team, rules, save_data);
             // insert post-boss cutscene here
         }
 
-        Console.WriteLine("BATTLE 1-4-1: GROUP THERAPY \n");
-        Combatant average_joe_7 = new Combatant {name = "Average Joe", VIT = 12, STR = 12, CHA = 12, INT = 12};
-        Combatant average_joe_8 = new Combatant {name = "Average Joe", VIT = 12, STR = 12, CHA = 12, INT = 12};
-        Combatant average_joe_9 = new Combatant {name = "Average Joe", VIT = 12, STR = 12, CHA = 12, INT = 12};
-        enemy_team = new Team { team = new List<Combatant> { average_joe_7, average_joe_8, average_joe_9 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        Console.WriteLine("BATTLE 1-4-2: KLEPTOMANIACS \n");
-        Combatant bumbling_burglar_3 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 32, CHA = 4, INT = 4};
-        Combatant bumbling_burglar_4 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 32, CHA = 4, INT = 4};
-        Combatant bumbling_burglar_5 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 32, CHA = 4, INT = 4};
-        enemy_team = new Team { team = new List<Combatant> { bumbling_burglar_3, bumbling_burglar_4, bumbling_burglar_5 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        Console.WriteLine("BATTLE 1-4-3: PSYCHOTIC DOCTORS \n");
-        Combatant mad_doctor_1 = new Combatant {name = "Mad Doctor", VIT = 10, STR = 30, CHA = 4, INT = 4};
-        Combatant glad_doctor_1 = new Combatant {name = "Glad Doctor", VIT = 10, STR = 4, CHA = 30, INT = 4};
-        Combatant sad_doctor_1 = new Combatant {name = "Sad Doctor", VIT = 10, STR = 4, CHA = 4, INT = 30};
-        enemy_team = new Team { team = new List<Combatant> { mad_doctor_1, glad_doctor_1, sad_doctor_1 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        // insert pre-boss cutscene here
-        Console.WriteLine("BATTLE 1-4-4: CARRIE \n");
-        Combatant carrie = new Combatant {name = "CARRIE", VIT = 60, STR = 20, CHA = 50, INT = 50};
-        enemy_team = new Team { team = new List<Combatant> { carrie } };
-        Battle(player_team, enemy_team, rules, save_data);
-        // insert post-boss cutscene here
-
-        save_data.semester += 1;
-        rules.target_downed = true;
-        rules.team_skills = true;
-
-        Dialogue("CENSORY - SEMESTER 2");
-        Dialogue("CLEARLY PRESENT");
-
-        // insert pre-mission cutscene here
-        player_team.team.Remove(peter);        
-        Tazewell(player_team, inventory, rules, save_data);
-
-        Console.WriteLine("BATTLE 2-1-1: MINJA MAYHEM \n");
-        Combatant minja_1 = new Combatant {name = "Minja", VIT = 10, STR = 40, CHA = 3, INT = 3};
-        Combatant minja_2 = new Combatant {name = "Minja", VIT = 10, STR = 40, CHA = 3, INT = 3};
-        enemy_team = new Team { team = new List<Combatant> { minja_1, minja_2 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        Console.WriteLine("BATTLE 2-1-2: WAILING BANSHEES \n");
-        Combatant wailing_banshee_1 = new Combatant {name = "Wailing Banshee", VIT = 10, STR = 3, CHA = 3, INT = 40};
-        Combatant wailing_banshee_2 = new Combatant {name = "Wailing Banshee", VIT = 10, STR = 3, CHA = 3, INT = 40};
-        enemy_team = new Team { team = new List<Combatant> { wailing_banshee_1, wailing_banshee_2 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        Console.WriteLine("BATTLE 2-1-3: METER MONARCHY \n");
-        Combatant short_king_1 = new Combatant {name = "Short King", VIT = 10, STR = 3, CHA = 40, INT = 3};
-        Combatant tall_queen_1 = new Combatant {name = "Tall Queen", VIT = 20, STR = 30, CHA = 3, INT = 3};
-        enemy_team = new Team { team = new List<Combatant> { short_king_1, tall_queen_1 } };
-        Battle(player_team, enemy_team, rules, save_data);
-
-        // insert pre-boss cutscene here
-        Console.WriteLine("BATTLE 2-1-4: TALL BIKE \n");
-        Combatant tall_bike = new Combatant {name = "Tall Bike", VIT = 60, STR = 60, CHA = 10, INT = 10};
-        enemy_team = new Team { team = new List<Combatant> { tall_bike } };
-        Battle(player_team, enemy_team, rules, save_data);
-        // insert post-boss cutscene here
-
         // insert goofy ahh side cutscene here
-        Tazewell(player_team, inventory, rules, save_data);
 
+        if ((save_data.battles_won - save_data.superbosses_slain) < 12) {
+            Tazewell(player_team, inventory, rules, save_data);
+
+            // insert pre-mission cutscene here
+            Combatant peter = new Combatant {name = "Peter", VIT = 7, STR = 7, CHA = 7, INT = 7};
+            peter.skills = new List<Skill> { SkillList.Attack, SkillList.BrainBoost, SkillList.BrainBreak, SkillList.None };
+            peter.toggles = new List<Toggle> { ToggleList.Distribute };
+            peter.team_skills = new List<TeamSkill> { TeamSkillList.None, TeamSkillList.None };
+            player_team.team.Add(peter);
+            inventory.skills.Add(SkillList.BrainBoost);
+            inventory.skills.Add(SkillList.BrainBreak);
+
+            Console.WriteLine("BATTLE 1-3-1: AVERAGE JOE THREESOME \n");
+            Combatant average_joe_4 = new Combatant {name = "Average Joe", VIT = 10, STR = 10, CHA = 10, INT = 10};
+            Combatant average_joe_5 = new Combatant {name = "Average Joe", VIT = 10, STR = 10, CHA = 10, INT = 10};
+            Combatant average_joe_6 = new Combatant {name = "Average Joe", VIT = 10, STR = 10, CHA = 10, INT = 10};
+            enemy_team = new Team { team = new List<Combatant> { average_joe_4, average_joe_5, average_joe_6 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            Console.WriteLine("BATTLE 1-3-2: HEARTSTEALERS \n");
+            Combatant lovebird_1 = new Combatant {name = "Lovebird", VIT = 12, STR = 4, CHA = 20, INT = 4};
+            Combatant bumbling_burglar_2 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 24, CHA = 4, INT = 4};
+            Combatant dainty_detergent_3 = new Combatant {name = "Dainty Detergent", VIT = 16, STR = 4, CHA = 16, INT = 4};
+            enemy_team = new Team { team = new List<Combatant> { lovebird_1, bumbling_burglar_2, dainty_detergent_3 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            Console.WriteLine("BATTLE 1-3-3: LOVE TRIANGLE \n");
+            Combatant lovebird_2 = new Combatant {name = "Lovebird", VIT = 8, STR = 4, CHA = 24, INT = 4};
+            Combatant hatebee_1 = new Combatant {name = "Hatebee", VIT = 8, STR = 24, CHA = 4, INT = 4};
+            Combatant ambivalant_1 = new Combatant {name = "Ambivalant", VIT = 8, STR = 4, CHA = 4, INT = 24};
+            enemy_team = new Team { team = new List<Combatant> { lovebird_2, hatebee_1, ambivalant_1 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            // insert pre-boss cutscene here
+            Console.WriteLine("BATTLE 1-3-4: COLONEL EIGEN \n");
+            Combatant eigen = new Combatant {name = "Colonel Eigen", VIT = 50, STR = 40, CHA = 30, INT = 30};
+            enemy_team = new Team { team = new List<Combatant> { eigen } };
+            Battle(player_team, enemy_team, rules, save_data);
+            // insert post-boss cutscene here
+
+            // insert goofy ahh side cutscene here
+
+            inventory.skills.Add(SkillList.Courage);
+            Dialogue("For defeating Colonel Eigen, you can now equip the skill Courage.");
+        }
+
+        if ((save_data.battles_won - save_data.superbosses_slain) < 16) {
+            Tazewell(player_team, inventory, rules, save_data);
+
+            choice = 0;
+            Console.WriteLine("You hear howling near Swem Library... will you investigate? Type 1 if yes, 0 if no.\n");
+            Console.WriteLine("NOTE: This is an optional challenge, and it will be your hardest one yet. Please think twice before proceeding.");
+            while (!int.TryParse(Console.ReadLine(), out choice) || (choice != 1 && choice != 0)) {
+                Console.WriteLine("Invalid! Would you like to investigate the howling near Swem Library? 1 if yes, 0 if no: ");
+                choice = 0;
+            }
+
+            // insert pre-boss cutscene here
+            if (choice == 1) {
+                // insert pre-boss cutscene here
+                Console.WriteLine("OPTIONAL SUPERBOSS 1-1: LIBRARY CORGIS \n");
+                Combatant nellie = new Combatant {name = "Nellie", VIT = 20, STR = 5, CHA = 5, INT = 20};
+                Combatant tucker = new Combatant {name = "Tucker", VIT = 20, STR = 20, CHA = 5, INT = 5};
+                Combatant louie = new Combatant {name = "Louie", VIT = 20, STR = 5, CHA = 20, INT = 5};
+                enemy_team = new Team { team = new List<Combatant> { nellie, tucker, louie } };
+                Battle(player_team, enemy_team, rules, save_data);
+                // insert post-boss cutscene here
+
+                save_data.superbosses_slain += 1;
+            }
+
+            Console.WriteLine("BATTLE 1-4-1: GROUP THERAPY \n");
+            Combatant average_joe_7 = new Combatant {name = "Average Joe", VIT = 12, STR = 12, CHA = 12, INT = 12};
+            Combatant average_joe_8 = new Combatant {name = "Average Joe", VIT = 12, STR = 12, CHA = 12, INT = 12};
+            Combatant average_joe_9 = new Combatant {name = "Average Joe", VIT = 12, STR = 12, CHA = 12, INT = 12};
+            enemy_team = new Team { team = new List<Combatant> { average_joe_7, average_joe_8, average_joe_9 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            Console.WriteLine("BATTLE 1-4-2: KLEPTOMANIACS \n");
+            Combatant bumbling_burglar_3 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 32, CHA = 4, INT = 4};
+            Combatant bumbling_burglar_4 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 32, CHA = 4, INT = 4};
+            Combatant bumbling_burglar_5 = new Combatant {name = "Bumbling Burglar", VIT = 8, STR = 32, CHA = 4, INT = 4};
+            enemy_team = new Team { team = new List<Combatant> { bumbling_burglar_3, bumbling_burglar_4, bumbling_burglar_5 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            Console.WriteLine("BATTLE 1-4-3: PSYCHOTIC DOCTORS \n");
+            Combatant mad_doctor_1 = new Combatant {name = "Mad Doctor", VIT = 10, STR = 30, CHA = 4, INT = 4};
+            Combatant glad_doctor_1 = new Combatant {name = "Glad Doctor", VIT = 10, STR = 4, CHA = 30, INT = 4};
+            Combatant sad_doctor_1 = new Combatant {name = "Sad Doctor", VIT = 10, STR = 4, CHA = 4, INT = 30};
+            enemy_team = new Team { team = new List<Combatant> { mad_doctor_1, glad_doctor_1, sad_doctor_1 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            // insert pre-boss cutscene here
+            Console.WriteLine("BATTLE 1-4-4: CARRIE \n");
+            Combatant carrie = new Combatant {name = "CARRIE", VIT = 60, STR = 20, CHA = 50, INT = 50};
+            enemy_team = new Team { team = new List<Combatant> { carrie } };
+            Battle(player_team, enemy_team, rules, save_data);
+            // insert post-boss cutscene here
+
+            choice = 0;
+            Console.WriteLine("END OF SEMESTER 1. Would you like to save your game? Type 1 if yes, 0 if no.\n");
+            while (!int.TryParse(Console.ReadLine(), out choice) || (choice != 1 && choice != 0)) {
+                Console.WriteLine("Invalid! Would you like to investigate the howling near Swem Library? 1 if yes, 0 if no: ");
+                choice = 0;
+            }
+
+            if (choice == 1) {
+                SaveGame(save_data, player_team, inventory);
+            }
+        }
+
+        if ((save_data.battles_won - save_data.superbosses_slain) < 20) {
+            save_data.semester += 1;
+            rules.target_downed = true;
+            rules.team_skills = true;
+
+            Dialogue("CENSORY - SEMESTER 2");
+            Dialogue("CLEARLY PRESENT");
+
+            // insert pre-mission cutscene here
+            player_team.team.Remove(player_team.team.Find(member => member.name == "Peter"));
+            Tazewell(player_team, inventory, rules, save_data);
+
+            // bronson.team_skills[0] = TeamSkillList.CycloneOfCreation;
+            // colt.team_skills[0] = TeamSkillList.CycloneOfCreation;
+            player_team.team.Find(member => member.name == "Bronson").team_skills[0] = TeamSkillList.CycloneOfCreation;
+            player_team.team.Find(member => member.name == "Colt").team_skills[0] = TeamSkillList.CycloneOfCreation;
+
+            Console.WriteLine("BATTLE 2-1-1: MINJA MAYHEM \n");
+            Combatant minja_1 = new Combatant {name = "Minja", VIT = 10, STR = 40, CHA = 3, INT = 3};
+            Combatant minja_2 = new Combatant {name = "Minja", VIT = 10, STR = 40, CHA = 3, INT = 3};
+            enemy_team = new Team { team = new List<Combatant> { minja_1, minja_2 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            Console.WriteLine("BATTLE 2-1-2: WAILING BANSHEES \n");
+            Combatant wailing_banshee_1 = new Combatant {name = "Wailing Banshee", VIT = 10, STR = 3, CHA = 3, INT = 40};
+            Combatant wailing_banshee_2 = new Combatant {name = "Wailing Banshee", VIT = 10, STR = 3, CHA = 3, INT = 40};
+            enemy_team = new Team { team = new List<Combatant> { wailing_banshee_1, wailing_banshee_2 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            Console.WriteLine("BATTLE 2-1-3: METER MONARCHY \n");
+            Combatant short_king_1 = new Combatant {name = "Short King", VIT = 10, STR = 3, CHA = 40, INT = 3};
+            Combatant tall_queen_1 = new Combatant {name = "Tall Queen", VIT = 20, STR = 30, CHA = 3, INT = 3};
+            enemy_team = new Team { team = new List<Combatant> { short_king_1, tall_queen_1 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            // insert pre-boss cutscene here
+            Console.WriteLine("BATTLE 2-1-4: TALL BIKE \n");
+            Combatant tall_bike = new Combatant {name = "Tall Bike", VIT = 60, STR = 60, CHA = 10, INT = 10};
+            enemy_team = new Team { team = new List<Combatant> { tall_bike } };
+            Battle(player_team, enemy_team, rules, save_data);
+            // insert post-boss cutscene here
+
+            // insert goofy ahh side cutscene here
+        }
+        if ((save_data.battles_won - save_data.superbosses_slain) < 23) {
+            Tazewell(player_team, inventory, rules, save_data);
+
+            Combatant clarissa = new Combatant {name = "Clarissa", VIT = 10, STR = 10, CHA = 10, INT = 10};
+            clarissa.skills = new List<Skill> { SkillList.Attack, SkillList.SturdyStrike, SkillList.StylishStrike, SkillList.SmartStrike };
+            clarissa.toggles = new List<Toggle> { ToggleList.ChemicalReaction };
+            clarissa.team_skills = new List<TeamSkill> { TeamSkillList.None, TeamSkillList.None };
+            player_team.team.Add(clarissa);
+            inventory.skills.Add(SkillList.SturdyStrike);
+            inventory.skills.Add(SkillList.StylishStrike);
+            inventory.skills.Add(SkillList.SmartStrike);
+
+            player_team.team.Find(member => member.name == "Bronson").team_skills[1] = TeamSkillList.BlackWhiteStrike;
+            player_team.team.Find(member => member.name == "Clarissa").team_skills[0] = TeamSkillList.BlackWhiteStrike;
+
+            Console.WriteLine("BATTLE 2-2-1: TAEKWONJOE TRIO \n");
+            Combatant taekwonjoe_1 = new Combatant {name = "Taekwonjoe", VIT = 16, STR = 16, CHA = 16, INT = 16};
+            Combatant taekwonjoe_2 = new Combatant {name = "Taekwonjoe", VIT = 16, STR = 16, CHA = 16, INT = 16};
+            Combatant taekwonjoe_3 = new Combatant {name = "Taekwonjoe", VIT = 16, STR = 16, CHA = 16, INT = 16};
+            enemy_team = new Team { team = new List<Combatant> { taekwonjoe_1, taekwonjoe_2, taekwonjoe_3 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            Console.WriteLine("BATTLE 2-2-2: FURRY FIGHTERS \n");
+            Combatant fencing_fox_1 = new Combatant {name = "Fencing Fox", VIT = 16, STR = 16, CHA = 16, INT = 16};
+            Combatant kendo_kitsune_1 = new Combatant {name = "Kendo Kitsune", VIT = 16, STR = 16, CHA = 16, INT = 16};
+            Combatant hema_hare_1 = new Combatant {name = "HEMA Hare", VIT = 16, STR = 16, CHA = 16, INT = 16};
+            enemy_team = new Team { team = new List<Combatant> { fencing_fox_1, kendo_kitsune_1, hema_hare_1 } };
+            Battle(player_team, enemy_team, rules, save_data);
+
+            // Insert battle 2-2-3 here
+
+            // insert pre-boss cutscene here
+            Console.WriteLine("BATTLE 2-2-4: MASTER YELLOW \n");
+            Combatant master_yellow = new Combatant {name = "Master Yellow", VIT = 100, STR = 20, CHA = 100, INT = 20};
+            enemy_team = new Team { team = new List<Combatant> { master_yellow } };
+            Battle(player_team, enemy_team, rules, save_data);
+            // insert post-boss cutscene here
+
+            // insert goofy ahh side cutscene here
+        }
+        if ((save_data.battles_won - save_data.superbosses_slain) < 24) {
+            Tazewell(player_team, inventory, rules, save_data);
+
+            player_team.team.Find(member => member.name == "Colt").team_skills[1] = TeamSkillList.LuckyCharmLandfill;
+            player_team.team.Find(member => member.name == "Clarissa").team_skills[1] = TeamSkillList.LuckyCharmLandfill;
+
+            // Insert battles 2-3-1, 2-3-2, and 2-3-3 here
+
+            // insert pre-boss cutscene here
+            Console.WriteLine("BATTLE 2-3-4: PROFESSOR BORGACHEV \n");
+            Combatant professor_borgachev = new Combatant {name = "Professor Borgachev", VIT = 100, STR = 100, CHA = 10, INT = 60};
+            enemy_team = new Team { team = new List<Combatant> { professor_borgachev } };
+            Battle(player_team, enemy_team, rules, save_data);
+            // insert post-boss cutscene here
+        }
+
+        if ((save_data.battles_won - save_data.superbosses_slain) < 28) {
+            save_data.semester += 1;
+            rules.types = true;
+
+            Dialogue("CENSORY - SEMESTER 3");
+            Dialogue("CLARITY AND APATHY");
+
+            Tazewell(player_team, inventory, rules, save_data);
+
+            // Insert battles 3-1-1, 3-1-2, 3-1-3, and 3-1-4 here
+
+            player_team.team.Remove(player_team.team.Find(member => member.name == "Clarissa"));
+
+            Combatant ingo = new Combatant {name = "Ingo", VIT = 13, STR = 13, CHA = 13, INT = 13};
+            ingo.skills = new List<Skill> { SkillList.Attack, SkillList.Overstimulate, SkillList.Oversedate, SkillList.None };
+            ingo.toggles = new List<Toggle> { ToggleList.Multitype };
+            ingo.team_skills = new List<TeamSkill> { TeamSkillList.None, TeamSkillList.None };
+            player_team.team.Add(ingo);
+            inventory.skills.Add(SkillList.None);
+
+            player_team.team.Find(member => member.name == "Bronson").team_skills[1] = TeamSkillList.LuckyCharmLandfill;
+            player_team.team.Find(member => member.name == "Ingo").team_skills[0] = TeamSkillList.LuckyCharmLandfill;
+
+            Tazewell(player_team, inventory, rules, save_data);
+        }
+
+        if ((save_data.battles_won - save_data.superbosses_slain) < 28) {
+            save_data.semester += 1;
+            rules.backup = true;
+
+            Dialogue("CENSORY - SEMESTER 4");
+            Dialogue("FINAL COMMUNION");
+
+            Tazewell(player_team, inventory, rules, save_data);
+
+            Combatant harold = new Combatant {name = "Harold", VIT = 16, STR = 16, CHA = 16, INT = 16, formation = "Backup"};
+            harold.skills = new List<Skill> { SkillList.Attack, SkillList.None, SkillList.None, SkillList.None };
+            harold.toggles = new List<Toggle> { ToggleList.PhysicalReaction };
+            harold.team_skills = new List<TeamSkill> { TeamSkillList.None, TeamSkillList.None };
+            player_team.team.Add(harold);
+            inventory.skills.Add(SkillList.None);
+
+            Tazewell(player_team, inventory, rules, save_data);
+        }
     }
 }
