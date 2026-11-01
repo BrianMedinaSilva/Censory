@@ -4,13 +4,17 @@ By Brian Medina
 Censory is a turn-based RPG currently being developed using C#, but will later be expanded upon using a more traditional game development engine. It follows college student Bronson as he seeks to uncover the truth behind the Universal Set, an alternate world that exists within his school. The game will be released in eight Semesters, with each one introducing more complex mechanics and revealing more about its overarching mystery.
 
 ## How to Play
-For the time being, Censory is a console-based C# program. To run it, make sure you have the .NET SDK installed and run the following commands in your terminal:
+For the time being, Censory is a console-based C# program. To run it, make sure you have the .NET SDK installed.
+
+Download link: https://dotnet.microsoft.com/en-us/download
+
+Once the installation is complete, run the following commands in your terminal:
 
 > dotnet run
 
 ## Features
-- 20 challenging turn-based battles (not counting an optional encounter for the clinically insane)
-- 3 party members, each with their own "toggles" that change how skills function
+- 24 challenging turn-based battles (not counting an optional encounter for the clinically insane)
+- 6 party members, each with their own "toggles" that change how skills function (though 2 toggles are currently a work in progress)
 - Several skills that account for a wide array of different playstyles
 - Enemy targeting AI that prioritizes targets based on your stats (lowest HP, highest STR, etc.)
 - A dynamic quick time event (QTE) mechanic that allows you to reduce damage and debuffs from enemies
@@ -25,9 +29,9 @@ For the time being, Censory is a console-based C# program. To run it, make sure 
 - Overall: 59.375%
 
 < SEMESTER 2 >
-- Battles: 4/12
+- Battles: 8/12
 - Cutscenes: 0/12
-- Overall: 16.67%
+- Overall: 33.33%
 
 (subject to change)
 
